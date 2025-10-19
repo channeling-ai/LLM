@@ -22,7 +22,7 @@ YouTube 영상을 종합적으로 분석하여 크리에이터들에게 유용�
 ## 🏗️ 시스템 아키텍처
 
 - **Backend**: Python FastAPI + SQLModel
-- **Database**: MySQL (채널, 영상 정보), PostgreSQL (벡터 임베딩)
+- **Database**: PostgreSQL (비즈니스 데이터 + 벡터 임베딩)
 - **Message Queue**: Apache Kafka
 - **AI/LLM**: OpenAI GPT-4o-mini
 - **External APIs**: YouTube Data API v3, YouTube Analytics API

@@ -278,7 +278,7 @@ class VideoService:
                 "seo" : avg_dic['seo'],
                 "revisit" : avg_dic['revisit'],
             })
-            logger.info("보고서 정보를 MYSQL DB에 저장했습니다.")
+            logger.info("보고서 정보를 PostgreSQL DB에 저장했습니다.")
             
             return True
             

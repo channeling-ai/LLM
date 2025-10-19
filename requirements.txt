@@ -4,7 +4,6 @@ uvicorn
 
 # Database
 sqlmodel
-aiomysql
 asyncpg
 pgvector
 cryptography

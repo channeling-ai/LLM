@@ -55,7 +55,7 @@ class CommentService:
                     "report_id": comments[0].report_id
                 })
             await self.comment_repository.save_bulk(comments_to_save)
-            logger.info("댓글 결과를 MYSQL DB에 저장했습니다.")
+            logger.info("댓글 결과를 PostgreSQL DB에 저장했습니다.")
         summarize_and_save_time = time.time() - summarize_and_save_start
         logger.info(f"📝 댓글 감정별 요약 및 저장 완료 ({summarize_and_save_time:.2f}초)")
         return summarized_comments

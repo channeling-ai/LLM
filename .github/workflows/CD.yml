@@ -13,13 +13,6 @@ jobs:
     runs-on: self-hosted
     env:
       # 공통 환경 변수 선언
-      # MySQL
-      MYSQL_HOST: ${{ secrets.MYSQL_HOST }}
-      MYSQL_PORT: "3306"
-      MYSQL_DATABASE: ${{ secrets.MYSQL_DATABASE }}
-      MYSQL_USER: ${{ secrets.MYSQL_USER }}
-      MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
-
       # PostgreSQL
       PG_HOST: ${{ secrets.PG_HOST }}
       PG_PORT: "5432"

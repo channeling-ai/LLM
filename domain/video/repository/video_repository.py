@@ -1,6 +1,6 @@
 from sqlmodel import select, func
 
-from core.config.database_config import MySQLSessionLocal
+from core.config.database_config import PGSessionLocal
 from core.database.repository.crud_repository import CRUDRepository
 from domain.video.model.video import Video
 
@@ -13,7 +13,7 @@ class VideoRepository(CRUDRepository[Video]):
     async def find_by_channel_id(self, channel_id: int) -> list[Video]:
         """
         """
-        async with MySQLSessionLocal() as session:
+        async with PGSessionLocal() as session:
             statement = select(self.model_class()).where(
                 self.model_class().channel_id == channel_id
             )
