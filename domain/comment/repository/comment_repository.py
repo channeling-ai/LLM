@@ -2,7 +2,7 @@ from typing import Dict, Any, List
 
 from sqlalchemy.ext.asyncio import async_session
 
-from core.config.database_config import MySQLSessionLocal
+from core.config.database_config import PGSessionLocal
 from core.database.repository.crud_repository import CRUDRepository, T
 from domain.comment.model.comment import Comment
 
