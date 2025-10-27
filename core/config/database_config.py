@@ -21,8 +21,8 @@ PG_DATABASE = os.getenv("PG_DATABASE")
 if PG_HOST in ['localhost', '127.0.0.1']:
     PG_DATABASE_URL = f"postgresql+asyncpg://{PG_USER}:{PG_PASSWORD}@{PG_HOST}:{PG_PORT}/{PG_DATABASE}"
 else:
-    # RDS 등 프로덕션 환경에서는 SSL 사용
-    PG_DATABASE_URL = f"postgresql+asyncpg://{PG_USER}:{PG_PASSWORD}@{PG_HOST}:{PG_PORT}/{PG_DATABASE}?ssl=require"
+    # RDS 등 프로덕션 환경에서는 SSL 사용 (prefer로 변경 - 서버가 SSL 지원 안 하면 일반 연결 시도)
+    PG_DATABASE_URL = f"postgresql+asyncpg://{PG_USER}:{PG_PASSWORD}@{PG_HOST}:{PG_PORT}/{PG_DATABASE}?ssl=prefer"
 
 # 비동기 엔진 생성
 # PostgreSQL 엔진
