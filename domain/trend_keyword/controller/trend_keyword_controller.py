@@ -17,6 +17,10 @@ router = APIRouter(prefix="/trend-keywords", tags=["trend-keywords"])
 
 @router.post("/real-time")
 async def create_real_time_keyword():
+
+    await trend_keyword_service.delete_past_realtime_keyword_if_exist()
+    
+    
     realtime_keyword = rag_service.analyze_realtime_trends()
     # 실시간 트렌드 키워드 저장
     if realtime_keyword and "trends" in realtime_keyword:
@@ -59,7 +63,7 @@ async def create_channel_keyword(channel_id: int):
     )
 
     # 기존 채널 맞춤형 키워드 존재 시 삭제
-    await trend_keyword_service.delete_past_if_exist(channel_id)
+    await trend_keyword_service.delete_past_chennel_keyword_if_exist(channel_id)
 
      # 채널 맞춤형 키워드 저장
     if channel_keyword and "customized_trends" in channel_keyword:
