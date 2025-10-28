@@ -47,7 +47,7 @@ class IdeaService:
                     "title": idea_result.get("title"),
                     "content": idea_result.get("description"),
                     "hash_tag": json.dumps(idea_result.get("tags"), ensure_ascii=False),
-                    "is_book_marked": 0,
+                    "is_book_marked": False,
                 }
                 ideas.append(idea)
 
