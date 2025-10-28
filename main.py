@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from core.config.database_config import test_pg_connection, test_mysql_connection
+from core.config.database_config import test_pg_connection
 from domain.report.controller.report_controller import router as report_router
 from domain.idea.controller.idea_controller import router as idea_router
 from response.code.status.success_status import SuccessStatus
@@ -19,13 +19,8 @@ app.include_router(idea_router)
 @app.on_event("startup")
 async def on_startup():
     print("🚀 서버 시작 중...")
-    
-    # DB 연결 테스트만 수행
-    if await test_mysql_connection():
-        print("✅ MySQL DB에 연결 완료")
-    else:
-        print("❌ MySQL DB 연결 실패")
 
+    # DB 연결 테스트
     if await test_pg_connection():
         print("✅ PostgreSQL DB에 연결 완료")
     else:

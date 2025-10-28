@@ -1,6 +1,6 @@
 from sqlmodel import select, func
 
-from core.config.database_config import MySQLSessionLocal
+from core.config.database_config import PGSessionLocal
 from core.database.repository.crud_repository import CRUDRepository
 from domain.video.model.video import Video
 
@@ -15,7 +15,7 @@ class VideoRepository(CRUDRepository[Video]):
         채널 ID로 비디오를 조회합니다.
         limit가 지정되면 최신 영상을 limit 개수만큼만 반환합니다.
         """
-        async with MySQLSessionLocal() as session:
+        async with PGSessionLocal() as session:
             statement = select(self.model_class()).where(
                 self.model_class().channel_id == channel_id
             ).order_by(self.model_class().upload_date.desc())  # 최신순 정렬

@@ -27,7 +27,7 @@ class ReportService:
 
     async def create_summary(self, video: Video, report_id: int, skip_vector_save: bool = False) -> bool:
         """
-        영상 요약을 생성하고 Vector DB와 MySQL에 저장
+        영상 요약을 생성하고 Vector DB와 PostgreSQL에 저장
         
         Args:
             video: 비디오 객체
@@ -65,15 +65,15 @@ class ReportService:
             else:
                 logger.info("[V2] 벡터 DB 저장을 스킵했습니다.")
             
-            # MySQL에 저장
-            mysql_start = time.time()
+            # PostgreSQL에 저장
+            pg_start = time.time()
             await self.report_repository.save({
                 "id": report_id,
                 "summary": summary,
                 "title": video.title
             })
-            mysql_time = time.time() - mysql_start
-            logger.info(f"🗄️ MySQL DB 저장 완료 ({mysql_time:.2f}초)")
+            pg_time = time.time() - pg_start
+            logger.info(f"🗄️ PostgreSQL DB 저장 완료 ({pg_time:.2f}초)")
             
             total_time = time.time() - start_time
             logger.info(f"📄 요약 생성 전체 완료 ({total_time:.2f}초)")
@@ -146,7 +146,7 @@ class ReportService:
             else:
                 logger.info("[V2] 벡터 DB 저장을 스킵했습니다.")
             
-            # MySQL에 저장
+            # PostgreSQL에 저장
             await self.report_repository.save({
                 "id": report_id,
                 "leave_analyze": leave_result
@@ -189,14 +189,14 @@ class ReportService:
             else:
                 logger.info("[V2] 벡터 DB 저장을 스킵했습니다.")
             
-            # MySQL에 저장
-            mysql_start = time.time()
+            # PostgreSQL에 저장
+            pg_start = time.time()
             await self.report_repository.save({
                 "id": report_id,
                 "optimization": analyze_opt
             })
-            mysql_time = time.time() - mysql_start
-            logger.info(f"🗄️ 알고리즘 최적화 분석 MySQL DB 저장 완료 ({mysql_time:.2f}초)")
+            pg_time = time.time() - pg_start
+            logger.info(f"🗄️ 알고리즘 최적화 분석 PostgreSQL DB 저장 완료 ({pg_time:.2f}초)")
             
             total_time = time.time() - start_time
             logger.info(f"⚙️ 알고리즘 최적화 분석 전체 완료 ({total_time:.2f}초)")
@@ -255,7 +255,7 @@ class ReportService:
             else:
                 logger.info("[V2] 벡터 DB 저장을 스킵했습니다.")
             
-            # 5. MySQL에 키워드 저장
+            # 5. PostgreSQL에 키워드 저장
             # 실시간 트렌드 키워드 저장
             if realtime_keyword and "trends" in realtime_keyword:
                 realtime_keywords_to_save = []
@@ -269,7 +269,7 @@ class ReportService:
                     realtime_keywords_to_save.append(trend_keyword)
                 
                 await self.trend_keyword_repository.save_bulk(realtime_keywords_to_save)
-                logger.info("실시간 트렌드 키워드를 MySQL DB에 저장했습니다.")
+                logger.info("실시간 트렌드 키워드를 PostgreSQL DB에 저장했습니다.")
 
             # 채널 맞춤형 키워드 저장
             if channel_keyword and "customized_trends" in channel_keyword:
@@ -284,7 +284,7 @@ class ReportService:
                     channel_keywords_to_save.append(trend_keyword)
                 
                 await self.trend_keyword_repository.save_bulk(channel_keywords_to_save)
-                logger.info("채널 맞춤형 키워드를 MySQL DB에 저장했습니다.")
+                logger.info("채널 맞춤형 키워드를 PostgreSQL DB에 저장했습니다.")
             
             total_time = time.time() - start_time
             logger.info(f"📊 트렌드 분석 전체 완료 ({total_time:.2f}초)")
@@ -300,5 +300,5 @@ class ReportService:
         성공 시 True, 실패 시 False를 반환합니다.
         """
         count_dict = {comment_type: len(comments) for comment_type, comments in comment_dict.items()}
-        logger.info("댓글 개수를 MYSQL DB에 저장합니다.")
+        logger.info("댓글 개수를 PostgreSQL DB에 저장합니다.")
         return await self.report_repository.update_count(report_id, count_dict)

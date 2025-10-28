@@ -4,7 +4,6 @@ uvicorn
 
 # Database
 sqlmodel
-aiomysql
 asyncpg
 pgvector
 cryptography
@@ -23,7 +22,7 @@ python-multipart
 openai
 langchain-core
 langchain-openai
-langchain
+langchain==0.3.27
 
 #FastStream
 faststream[kafka]
