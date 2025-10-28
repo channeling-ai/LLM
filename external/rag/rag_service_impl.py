@@ -135,11 +135,17 @@ class RagServiceImpl(RagService):
             """
             logging.info("아이디어 내 채널 확인 : %s", origin_context)
 
-            request_context = f"""
-- 아이디어 키워드 : {idea_req.keyword}
-- 아이디어 설명 : {idea_req.detail}
-- 아이디어 영상 유형 : {idea_req.video_type}
-"""
+            request_context = []
+
+            if idea_req.keyword:
+                request_context.append(f"- 아이디어 키워드 : {idea_req.keyword}")
+            if idea_req.detail:
+                request_context.append(f"- 아이디어 설명 : {idea_req.detail}")
+            if idea_req.video_type:
+                request_context.append(f"- 아이디어 영상 유형 : {idea_req.video_type}")
+
+            request_context = "\n".join(request_context) if request_context else ""
+
 
             # 2. 영상과 의미적으로 가장 유사한 '인기 영상' 청크를 검색 (Vector DB)
             search_start = time.time()
