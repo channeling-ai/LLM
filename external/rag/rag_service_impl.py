@@ -1,20 +1,28 @@
-from external.rag.rag_service import RagService
-from external.youtube.transcript_service import TranscriptService
-from external.youtube.video_detail_service import VideoDetailService
-from external.youtube.youtube_video_service import VideoService
-from external.youtube.youtube_comment_service import YoutubeCommentService
-from domain.content_chunk.repository.content_chunk_repository import ContentChunkRepository
-from domain.video.model.video import Video
-from domain.channel.model.channel import Channel
-from domain.comment.model.comment_type import CommentType
-from core.enums.source_type import SourceTypeEnum
+import json
+import logging
+import time
+from datetime import datetime
+from typing import List, Dict, Any
+
+from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.documents import Document
-from langchain_openai import ChatOpenAI
 from langchain_core.prompts import PromptTemplate
 from langchain_core.prompts.chat import ChatPromptTemplate, HumanMessagePromptTemplate
-from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain_openai import ChatOpenAI
+
+from core.enums.source_type import SourceTypeEnum
+from core.enums.video_category import VideoCategory
 from core.llm.prompt_template_manager import PromptTemplateManager
+from domain.channel.model.channel import Channel
+from domain.comment.model.comment_type import CommentType
+from domain.content_chunk.repository.content_chunk_repository import ContentChunkRepository
+from domain.idea.dto.idea_dto import IdeaRequest
+from external.rag.rag_service import RagService
+from external.youtube.transcript_service import TranscriptService
 from external.youtube.trend_service import TrendService
+from external.youtube.video_detail_service import VideoDetailService
+from external.youtube.youtube_comment_service import YoutubeCommentService
+from external.youtube.youtube_video_service import VideoService
 from typing import List, Dict, Any
 from datetime import datetime
 from domain.trend_keyword.model.trend_keyword import TrendKeyword
@@ -102,65 +110,81 @@ class RagServiceImpl(RagService):
             print(f"JSON 파싱 오류: {e}, 원본 응답: {result}")
             return ["댓글 요약을 생성할 수 없습니다."]
 
-    async def analyze_idea(self, video: Video, channel: Channel, summary: str) -> List[Dict[str, Any]]:
-        try:
-            # 0. 영상 내용 참고
-            sliced_summary = summary[:200]
+    async def get_popular_videos(self, category: VideoCategory):
+        api_start = time.time()
+        logger.info(f"{category.name} YouTube 인기 동영상 API 호출 중...")
 
-            # 1. 내 채널, 내 영상
+        # 2. 인기 동영상 목록 유튜브 호출 (YouTube API)
+        category_id = category.value
+        popular_videos = self.youtube_video_service.get_category_popular(category_id)
+
+        api_time = time.time() - api_start
+        logger.info(f"📱 YouTube 인기 동영상 API 호출 완료 ({api_time:.2f}초) - {len(popular_videos)}개 영상")
+
+        # 3. 텍스트로 변환하여 Vector DB에 저장
+        for popular in popular_videos:
+            pop_video_text = f"""제목: {popular['video_title']}, 설명: {popular['video_description']}, 태그: {popular['video_hash_tag']}"""
+            await self.content_chunk_repository.save_context(
+                source_type=SourceTypeEnum.IDEA_RECOMMENDATION,
+                source_id=int(category.value),
+                context=pop_video_text)
+
+
+    async def analyze_idea(self, idea_req: IdeaRequest, channel: Channel, summary: str) -> List[Dict[str, Any]]:
+        try:
+            # 1. 내 채널 정보 + 요청 내용
             origin_context = f"""
-            - 분석 영상 제목: {video.title}
-            - 분석 영상 설명: {video.description}
-            - 분석 영상 카테고리 : {video.video_category.name}
-            - 채널명: {channel.name}
-            - 컨셉: {channel.concept}
-            - 타겟 시청자: {channel.target}
-            - 내용 : {sliced_summary}
+- 채널명: {channel.name}
+- 채널 컨셉: {channel.concept}
+- 타겟 시청자: {channel.target}
+- 카테고리 : {channel.channel_hash_tag.name}
+- 최근 영상의 핵심 내용: {summary}
             """
             logging.info("아이디어 내 채널 확인 : %s", origin_context)
 
-            # 2. 인기 동영상 목록 유튜브 호출 (YouTube API)
-            api_start = time.time()
-            logger.info("📱 YouTube 인기 동영상 API 호출 중...")
-            category_id = video.video_category.value
-            popular_videos = self.youtube_video_service.get_category_popular(category_id)
-            api_time = time.time() - api_start
-            logger.info(f"📱 YouTube 인기 동영상 API 호출 완료 ({api_time:.2f}초) - {len(popular_videos)}개 영상")
+            request_context = []
 
-            # 3. 텍스트로 변환하여 Vector DB에 저장
-            for popular in popular_videos:
-                pop_video_text = f"""제목: {popular['video_title']}, 설명: {popular['video_description']},태그: {popular['video_hash_tag']}"""
-                await self.content_chunk_repository.save_context(
-                    source_type=SourceTypeEnum.IDEA_RECOMMENDATION,
-                    source_id=video.id,
-                    context=pop_video_text)
+            if idea_req.keyword:
+                request_context.append(f"- 아이디어 키워드 : {idea_req.keyword}")
+            if idea_req.detail:
+                request_context.append(f"- 아이디어 설명 : {idea_req.detail}")
+            if idea_req.video_type:
+                request_context.append(f"- 아이디어 영상 유형 : {idea_req.video_type}")
 
-            # 4. 영상과 의미적으로 가장 유사한 '인기 영상' 청크를 검색 (Vector DB)
+            request_context = "\n".join(request_context) if request_context else ""
+
+
+            # 2. 영상과 의미적으로 가장 유사한 '인기 영상' 청크를 검색 (Vector DB)
             search_start = time.time()
             logger.info("🔍 유사 인기 영상 벡터 검색 중...")
-            query_text = f"제목: {video.title}, 설명: {video.description}, 카테고리: {video.video_category.name}"
-            video_embedding = await self.content_chunk_repository.generate_embedding(query_text)
-            meta_data = {"query_embedding": str(video_embedding)}
+            query_text = f"컨셉: {channel.concept}, 카테고리: {channel.channel_hash_tag}, 최근 영상 요약: {summary}"
 
+            video_embedding = await self.content_chunk_repository.generate_embedding(query_text)
+            meta_data = {"query_embedding": str(video_embedding), "source_id": channel.channel_hash_tag.value}
             similar_chunks = await self.content_chunk_repository.search_similar_by_embedding(
                 SourceTypeEnum.IDEA_RECOMMENDATION, metadata=meta_data, limit=5
             )
+
             search_time = time.time() - search_start
             logger.info(f"🔍 유사 인기 영상 벡터 검색 완료 ({search_time:.2f}초) - {len(similar_chunks)}개 청크")
 
-            # 5. 검색된 청크(내용)를 텍스트로
+            # 3. 검색된 청크(내용)를 텍스트로 (토큰 효율성을 위해 '제목'만 추출하거나, 저장된 content를 그대로 사용)
             popularity_context = "\n".join([chunk.get("content", "") for chunk in similar_chunks])
 
-            # 프롬프트 생성 및 LLM 실행
-            llm_start = time.time()
-            logger.info("🤖 아이디어 생성 LLM 실행 중...")
-            query = "트렌드 분석 후, 이 유튜브 영상과 관련된 새 컨텐츠에 대한 아이디어를 3개 생성해주세요."
-            chain = PromptTemplateManager.get_idea_prompt | self.llm
-            result_str = await chain.ainvoke({
-                "query": query,
+            input_data = {
+                "request": request_context,
                 "origin": origin_context,
                 "popularity": popularity_context
-            })
+            }
+            full_prompt = PromptTemplateManager.get_idea_prompt(input_data)
+            logger.info("🤖 LLM 호출 전 전체 프롬프트:\n%s", full_prompt)
+
+            # 4. LLM 실행
+            llm_start = time.time()
+            logger.info("🤖 아이디어 생성 LLM 실행 중...")
+
+            result_str = await self.llm.ainvoke(full_prompt)
+
             llm_time = time.time() - llm_start
             logger.info(f"🤖 아이디어 생성 LLM 실행 완료 ({llm_time:.2f}초)")
 

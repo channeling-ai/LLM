@@ -13,6 +13,7 @@ trend_keyword_repository = TrendKeywordRepository()
 trend_keyword_service = TrendKeywordService()
 channel_repository = ChannelRepository()
 rag_service = RagServiceImpl()
+
 router = APIRouter(prefix="/trend-keywords", tags=["trend-keywords"])
 
 @router.post("/real-time")

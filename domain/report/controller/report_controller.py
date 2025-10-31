@@ -1,25 +1,24 @@
 
+import logging
+
 from fastapi import APIRouter
 from pydantic import BaseModel
+
 from core.config.kafka_config import KafkaConfig
-from domain.channel.repository.channel_repository import ChannelRepository
-from domain.idea.repository.idea_repository import IdeaRepository
-from domain.task.model.task import Status
+from core.kafka.kafka_broker import kafka_broker
 from core.kafka.message import Message
 from core.kafka.message import Step
+from domain.channel.repository.channel_repository import ChannelRepository
+from domain.idea.repository.idea_repository import IdeaRepository
 from domain.report.repository.report_repository import ReportRepository
-from domain.task.repository.task_repository import TaskRepository
 from domain.report.service.report_producer import ReportProducer
-from core.kafka.kafka_broker import kafka_broker
+from domain.task.model.task import Status
+from domain.task.repository.task_repository import TaskRepository
 from domain.video.repository.video_repository import VideoRepository
-from external.rag.rag_service import RagService
 from external.rag.rag_service_impl import RagServiceImpl
 from response.api_response import ApiResponse
 from response.code.status.success_status import SuccessStatus
 
-from domain.video.service.video_service import VideoService
-
-import logging
 
 # Request Body Model
 class CreateReportRequest(BaseModel):
@@ -62,7 +61,7 @@ async def create_report(video_id: int, request: CreateReportRequest):
         "report_id": report.id,
         "overview_status": Status.PENDING,
         "analysis_status": Status.PENDING,
-        "idea_status": Status.PENDING
+        "idea_status": Status.COMPLETED
         }
     task = await task_repository.save(data=task_data)
     print(f"Task created with ID: {task.id}")
@@ -82,16 +81,9 @@ async def create_report(video_id: int, request: CreateReportRequest):
         google_access_token=request.googleAccessToken
     )
 
-    idea_message = Message(
-        task_id=task.id,
-        report_id=report.id,
-        step=Step.idea
-    )
-
     # 메시지 발행
     await report_producer.send_message("overview-topic", overview_message)
     await report_producer.send_message("analysis-topic", analysis_message)
-    await report_producer.send_message("idea-topic", idea_message)
 
     return ApiResponse.on_success(SuccessStatus._OK, {"task_id": task.id})
 
@@ -119,7 +111,7 @@ async def create_report_v2(video_id: int, request: CreateReportRequest):
         "report_id": report.id,
         "overview_status": Status.PENDING,
         "analysis_status": Status.PENDING,
-        "idea_status": Status.PENDING
+        "idea_status": Status.COMPLETED
         }
     task = await task_repository.save(data=task_data)
     logger.info(f"[V2] Task created with ID: {task.id}")
@@ -141,16 +133,8 @@ async def create_report_v2(video_id: int, request: CreateReportRequest):
         skip_vector_save=True
     )
 
-    idea_message = Message(
-        task_id=task.id,
-        report_id=report.id,
-        step=Step.idea,
-        skip_vector_save=True
-    )
-
     # 메시지 발행 (V2 토픽 사용)
     await report_producer.send_message("overview-topic-v2", overview_message)
     await report_producer.send_message("analysis-topic-v2", analysis_message)
-    await report_producer.send_message("idea-topic-v2", idea_message)
 
     return ApiResponse.on_success(SuccessStatus._OK, {"task_id": task.id, "version": "v2"})

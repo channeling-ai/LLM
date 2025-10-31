@@ -110,29 +110,37 @@ class VectorRepository(Generic[T], ABC):
             template_embedding = metadata.get("query_embedding")
 
             # 2. 해당 source_type의 content_chunks 중 가장 유사한 것들 검색
-            search_query = text("""
-                                SELECT c.id,
-                                       c.source_type,
-                                       c.source_id,
-                                       c.content,
-                                       c.chunk_index,
-                                       c.meta,
-                                       c.created_at,
-                                       1 - (c.embedding <=> :template_embedding) as similarity
-                                FROM content_chunk c
-                                WHERE c.source_type = :source_type
-                                ORDER BY c.embedding <=> :template_embedding
-                LIMIT :limit
-                                """)
+            base_query = """
+                         SELECT c.id,
+                                c.source_type,
+                                c.source_id,
+                                c.content,
+                                c.chunk_index,
+                                c.meta,
+                                c.created_at,
+                                1 - (c.embedding <=> :template_embedding) as similarity
+                         FROM content_chunk c
+                         WHERE c.source_type = :source_type \
+                         """
 
-            result = await session.execute(
-                search_query,
-                {
-                    "template_embedding": template_embedding,
-                    "source_type": source_type.name,
-                    "limit": limit
-                }
-            )
+            params = {
+                "template_embedding": template_embedding,
+                "source_type": source_type.name,
+                "limit": limit
+            }
+
+            # 메타데이터 조건 추가(있을 경우)
+            if metadata and "source_id" in metadata:
+                base_query += " AND c.source_id = :source_id"
+                params["source_id"] = metadata["source_id"]
+
+            # 정렬 조건 및 쿼리 실행
+            final_query_string = base_query + """
+                ORDER BY c.embedding <=> :template_embedding
+                LIMIT :limit
+            """
+            search_query = text(final_query_string)
+            result = await session.execute(search_query, params)
 
             chunks = []
             for row in result:
