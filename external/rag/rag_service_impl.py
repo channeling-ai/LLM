@@ -17,6 +17,7 @@ from core.llm.prompt_template_manager import PromptTemplateManager
 from external.youtube.trend_service import TrendService
 from typing import List, Dict, Any
 from datetime import datetime
+from domain.trend_keyword.model.trend_keyword import TrendKeyword
 import json
 import logging
 import time
@@ -310,7 +311,8 @@ class RagServiceImpl(RagService):
     def analyze_channel_trends(
         self,
         channel_concept: str,
-        target_audience: str
+        target_audience: str,
+        latest_trend_keywords : List[TrendKeyword]
 
     ) -> Dict:
         """
@@ -326,10 +328,21 @@ class RagServiceImpl(RagService):
         # 1. Context 구성 (채널 정보)
         current_date = datetime.now().strftime("%Y년 %m월 %d일")
         
+        # TrendKeyword 리스트 → dict로 변환
+        real_time_keywords_data = [
+            {
+                "keyword": kw.keyword,
+                "score": kw.score,
+                "created_at": kw.created_at.strftime("%Y-%m-%d %H:%M:%S")  # datetime → str
+            }
+            for kw in latest_trend_keywords
+]
         context = {
             "channel_concept": channel_concept,
             "target_audience": target_audience,
-            "current_date": current_date
+            "current_date": current_date,
+            "latest_5_trend_keywords": real_time_keywords_data
+
         }
         
         # 2. LLM에게 분석 요청
@@ -358,7 +371,9 @@ class RagServiceImpl(RagService):
             "context": documents,
             "channel_concept": channel_concept,
             "target_audience": target_audience,
-            "current_date": current_date
+            "current_date": current_date,
+            "latest_5_trend_keywords": real_time_keywords_data
+
         })
         llm_time = time.time() - llm_start
         logger.info(f"🤖 채널 맞춤형 트렌드 분석 LLM 실행 완료 ({llm_time:.2f}초)")
