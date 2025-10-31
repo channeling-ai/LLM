@@ -2,6 +2,8 @@ from datetime import datetime
 from typing import Optional
 
 from sqlmodel import SQLModel, Field
+
+from core.enums.video_category import VideoCategory
 from core.utils.datetime_utils import get_kst_now_naive
 
 
@@ -29,7 +31,7 @@ class Channel(SQLModel, table=True):
     target: str = Field(description="시청자 타겟")
     concept: str = Field(description="채널 컨셉")
     image: str = Field(description="채널 프로필 이미지")
-    channel_hash_tag: str  = Field(description="채널 해시태그")
+    channel_hash_tag: VideoCategory  = Field(description="채널 해시태그")
     channel_update_at: datetime = Field(description="채널 업데이트 날짜")
 
     # BaseEntity 상속 부분 (created_at, updated_at)
