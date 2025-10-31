@@ -12,9 +12,9 @@ class TrendKeyword(SQLModel, table=True):
     # Primary Key
     id: Optional[int] = Field(default=None, primary_key=True)
     
-    # Foreign Key - Report 테이블 참조
-    report_id: int = Field(
-        description="연관된 리포트 ID"
+    # Foreign Key - Channel 테이블 참조
+    channel_id: int = Field(
+        description="연관된 채널 ID (null 허용)"
     )
     
     # 키워드 타입
