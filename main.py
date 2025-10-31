@@ -6,6 +6,8 @@ from core.config.database_config import test_pg_connection
 from core.kafka.kafka_broker import kafka_broker
 from domain.idea.controller.idea_controller import router as idea_router
 from domain.report.controller.report_controller import router as report_router
+from domain.trend_keyword.controller.trend_keyword_controller import router as trend_router
+
 from response.api_response import ApiResponse
 from response.code.status.success_status import SuccessStatus
 

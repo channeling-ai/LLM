@@ -5,7 +5,7 @@ from sqlalchemy import desc
 from sqlmodel import select
 from sqlalchemy import delete
 
-from core.config.database_config import MySQLSessionLocal
+from core.config.database_config import PGSessionLocal
 
 class TrendKeywordRepository(CRUDRepository):
     def model_class(self) -> type["TrendKeyword"]:
@@ -13,7 +13,7 @@ class TrendKeywordRepository(CRUDRepository):
     
 
     async def get_latest_real_time_keywords(self, limit: int = 5) -> List[TrendKeyword]:
-        async with MySQLSessionLocal() as session:  # type: AsyncSession
+        async with PGSessionLocal() as session:  # type: AsyncSession
             query = select(self.model_class()).where(
                 self.model_class().keyword_type == "REAL_TIME"  # Enum 값 확인
             ).order_by(
@@ -24,7 +24,7 @@ class TrendKeywordRepository(CRUDRepository):
             return result.scalars().all()
         
     async def get_latest_channel_keywords(self, channe_id: int) -> List[TrendKeyword]:
-        async with MySQLSessionLocal() as session:  # type: AsyncSession
+        async with PGSessionLocal() as session:  # type: AsyncSession
             query = select(self.model_class()).where(
                 self.model_class().keyword_type == "CHANNEL",
                 self.model_class().channel_id == channe_id #  Enum 값 확인

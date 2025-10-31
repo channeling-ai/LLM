@@ -3,6 +3,8 @@ from typing import Optional
 from sqlmodel import SQLModel, Field
 from domain.trend_keyword.model.trend_keyword_type import TrendKeywordType
 from core.utils.datetime_utils import get_kst_now_naive
+from sqlalchemy import Column, Enum as SAEnum
+
 
 
 class TrendKeyword(SQLModel, table=True):
@@ -19,7 +21,10 @@ class TrendKeyword(SQLModel, table=True):
     
     # 키워드 타입
     keyword_type: TrendKeywordType = Field(
-        description="트렌드 키워드 타입 (REALTIME: 실시간, CHANNEL: 채널 맞춤형)"
+        sa_column=Column(
+            SAEnum(TrendKeywordType, name="trendkeywordtype", native_enum=False),  # ← 중요
+            nullable=False
+        )
     )
     
     # 키워드 정보
