@@ -36,7 +36,7 @@ class TrendKeywordRepository(CRUDRepository):
 
     async def delete_trend_keywords_bulk(self, trend_keyword_list: list[TrendKeyword]):
         ids = [tk.id for tk in trend_keyword_list]
-        async with MySQLSessionLocal() as session:
+        async with PGSessionLocal() as session:
             query = delete(self.model_class()).where(self.model_class().id.in_(ids))
             await session.execute(query)
             await session.commit()
