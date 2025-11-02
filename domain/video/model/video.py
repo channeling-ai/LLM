@@ -1,16 +1,24 @@
 from datetime import datetime
 from typing import Optional
 
+from sqlalchemy import Column
 from sqlmodel import SQLModel, Field
 
 from core.enums.video_category import VideoCategory
+from sqlalchemy import Column, Enum as SAEnum
+
 
 
 class Video(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     channel_id: int = Field(description="채널 ID")
     youtube_video_id: str = Field(description="YouTube 비디오 ID")
-    video_category: VideoCategory = Field(description="비디오 카테고리")
+    video_category: VideoCategory = Field(
+        sa_column=Column(
+            SAEnum(VideoCategory, name="videocategory", native_enum=False),
+            nullable=False
+        )
+    )
     title: Optional[str] = Field(description="비디오 제목")
     view: Optional[int] = Field(description="조회수")
     like_count: Optional[int] = Field(description="좋아요 수")

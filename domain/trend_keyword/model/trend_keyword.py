@@ -22,7 +22,7 @@ class TrendKeyword(SQLModel, table=True):
     # 키워드 타입
     keyword_type: TrendKeywordType = Field(
         sa_column=Column(
-            SAEnum(TrendKeywordType, name="trendkeywordtype", native_enum=False),  # ← 중요
+            SAEnum(TrendKeywordType, name="trendkeywordtype", native_enum=False),
             nullable=False
         )
     )
