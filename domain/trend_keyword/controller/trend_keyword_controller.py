@@ -36,7 +36,7 @@ async def create_real_time_keyword():
             realtime_keywords_to_save.append(trend_keyword)
         
         await trend_keyword_repository.save_bulk(realtime_keywords_to_save)
-        logger.info("실시간 트렌드 키워드를 MySQL DB에 저장했습니다.")
+        logger.info("실시간 트렌드 키워드를 PG DB에 저장했습니다.")
     return {"message": "ok"}
 
 
@@ -79,5 +79,5 @@ async def create_channel_keyword(channel_id: int):
             channel_keywords_to_save.append(trend_keyword)
         
         await trend_keyword_repository.save_bulk(channel_keywords_to_save)
-        logger.info("채널 맞춤형 키워드를 MySQL DB에 저장했습니다.")
+        logger.info("채널 맞춤형 키워드를 PG DB에 저장했습니다.")
     return {"message": "ok"}
