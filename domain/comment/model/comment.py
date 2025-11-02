@@ -4,6 +4,8 @@ from datetime import datetime
 from typing import Optional
 from domain.comment.model.comment_type import CommentType
 from core.utils.datetime_utils import get_kst_now_naive
+from sqlalchemy import Column, Enum as SAEnum
+
 
 
 class Comment(SQLModel, table=True):
@@ -15,6 +17,12 @@ class Comment(SQLModel, table=True):
     comment_type: str = Field(
         sa_column=Column(SQLEnum('ADVICE_OPINION', 'NEGATIVE', 'NEUTRAL', 'POSITIVE', name='comment_type_enum')),
         description="댓글 타입"
+    )
+    comment_type: str = Field(
+        sa_column=Column(
+            SAEnum(CommentType, name="commenttype", native_enum=False),
+            nullable=False
+        )
     )
     content: str = Field(description="댓글 내용")
     
