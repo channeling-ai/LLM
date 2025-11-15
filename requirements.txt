@@ -12,6 +12,9 @@ pydantic-settings
 # Configuration
 python-dotenv
 
+# Redis Cache
+redis[asyncio]>=5.0.0
+
 # HTTP Client
 httpx
 
