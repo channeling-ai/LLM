@@ -45,3 +45,6 @@ serpapi
 
 # isodate
 isodate
+
+# Timezone data (Windows)
+tzdata
