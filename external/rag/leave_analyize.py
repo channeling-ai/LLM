@@ -55,10 +55,10 @@ async def analyze_leave(video: Video, token: str) -> str:
 
 
         # 2. 영상의 스크립트 가져오기
-        # 대본 스크립트 가져오기
+        # 대본 스크립트 가져오기 (Redis 캐싱 적용)
         transcript_start = time.time()
         logger.info("📜 영상 자막 데이터 가져오는 중...")
-        context = transcript_service.get_structured_transcript(youtube_video_id)
+        context = await transcript_service.get_structured_transcript(youtube_video_id)
         transcript_time = time.time() - transcript_start
         logger.info(f"📜 자막 데이터 가져오기 완료 ({transcript_time:.2f}초)")
         

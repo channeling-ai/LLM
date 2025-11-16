@@ -44,11 +44,11 @@ class RagServiceImpl(RagService):
         self.youtube_video_service = VideoService()
         self.llm = ChatOpenAI(model="gpt-4o-mini")
     
-    def summarize_video(self, video_id: str) -> str:
-        context = self.transcript_service.get_formatted_transcript(video_id)
-        print("정리된 자막 = ", context)
+    async def summarize_video(self, video_id: str) -> str:
+        context = await self.transcript_service.get_formatted_transcript(video_id)
+        print("정리된 자막 = ", context[:100])
         print()
-        
+
 
         # 자막이 없는 경우 바로 메시지 반환
         if not context or context.strip() == "":
@@ -207,16 +207,16 @@ class RagServiceImpl(RagService):
             알고리즘 최적화 분석 결과
         """
         try:
-            # 영상 상세 정보 조회 (YouTube API)
+            # 영상 상세 정보 조회 (YouTube API + Redis 캐싱)
             video_start = time.time()
             logger.info("📹 YouTube 영상 상세 정보 API 호출 중...")
-            video_details = self.video_detail_service.get_video_details(video_id)
+            video_details = await self.video_detail_service.get_video_details(video_id)
             video_time = time.time() - video_start
             logger.info(f"📹 YouTube 영상 상세 정보 API 호출 완료 ({video_time:.2f}초)")
-            
+
             # 채널 정보 조회 (YouTube API)
             channel_id = video_details.get('channelId')
-            
+
             channel_stats = {}
             if channel_id:
                 channel_start = time.time()

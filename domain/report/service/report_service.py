@@ -47,12 +47,12 @@ class ReportService:
                 logger.error("YouTube 영상 ID가 없습니다.")
                 return False
             
-            # 요약 생성 (LLM API 호출)
+            # 요약 생성 (LLM API 호출, Redis 캐싱 적용)
             summary_start = time.time()
-            summary = self.rag_service.summarize_video(youtube_video_id)
+            summary = await self.rag_service.summarize_video(youtube_video_id)
             summary_time = time.time() - summary_start
             logger.info(f"🤖 LLM API 요약 생성 완료 ({summary_time:.2f}초)")
-            logger.info("요약 결과:\n%s", summary)
+            logger.info("요약 결과:\n%s", summary[:100])
             
             # 벡터 DB에 저장 (skip_vector_save가 False인 경우만)
             if not skip_vector_save:

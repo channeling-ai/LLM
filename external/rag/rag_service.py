@@ -8,8 +8,8 @@ class RagService(ABC):
     """RAG 서비스 추상 클래스"""
     
     @abstractmethod
-    def summarize_video(self, video_id: str) -> str:
-        """비디오 요약"""
+    async def summarize_video(self, video_id: str) -> str:
+        """비디오 요약 (Redis 캐싱 적용)"""
         pass
     
     @abstractmethod

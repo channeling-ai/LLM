@@ -32,7 +32,7 @@ class VideoService:
             metrics = 'views,averageViewDuration,likes,shares,subscribersGained'
         )
 
-        video_detail = self.youtube_video_detail_service.get_video_details(video.youtube_video_id)
+        video_detail = await self.youtube_video_detail_service.get_video_details(video.youtube_video_id)
         google_result = video_analytics['rows'][0]
 
         analytics_data = {

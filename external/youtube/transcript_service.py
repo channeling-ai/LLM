@@ -1,10 +1,16 @@
 import os
+import json
+import asyncio
+import logging
 from dotenv import load_dotenv
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api.proxies import WebshareProxyConfig
+from core.cache.redis_client import get_redis_client
 
 # .env 파일 로드
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 class TranscriptService:
     """YouTube 자막 처리 서비스"""
@@ -13,7 +19,7 @@ class TranscriptService:
         # Webshare 프록시 설정
         self.proxy_username = os.getenv("PROXY_USERNAME")
         self.proxy_password = os.getenv("PROXY_PASSWORD")
-        
+
         # 프록시 설정된 API 인스턴스 생성
         self.ytt_api = YouTubeTranscriptApi(
             proxy_config=WebshareProxyConfig(
@@ -44,30 +50,113 @@ class TranscriptService:
         s = int(seconds % 60)
         return f"{m}:{s:02d}"
 
-    def get_formatted_transcript(self, video_id: str, languages=['ko', 'en']) -> str:
+    async def get_formatted_transcript(self, video_id: str, languages=['ko', 'en']) -> str:
         """
         fetch_transcript로 자막 가져와서 사람이 읽기 좋은 문자열 포맷으로 변환
         예: "안녕하세요. (0:08 - 0:13)"
+
+        Note: Redis 캐싱을 사용하는 get_structured_transcript()를 호출합니다.
         """
-        transcription = self.fetch_transcript(video_id, languages)
-        if not transcription:
+        structured = await self.get_structured_transcript(video_id, languages)
+        if not structured:
             return ""
-        
+
         formatted_lines = []
-        for entry in transcription:
-            start = entry.start
-            end = start + entry.duration
+        for entry in structured:
+            start = entry["start_time"]
+            end = entry["end_time"]
             start_fmt = self.format_time(start)
             end_fmt = self.format_time(end)
-            line = f"{entry.text} ({start_fmt} - {end_fmt})"
+            line = f"{entry['text']} ({start_fmt} - {end_fmt})"
             formatted_lines.append(line)
 
         return "\n".join(formatted_lines)
 
-    def get_structured_transcript(self, video_id: str, languages=['ko', 'en']) -> list[dict]:
+    async def get_structured_transcript(self, video_id: str, languages=['ko', 'en']) -> list[dict]:
         """
         fetch_transcript로 자막 가져와서
         [{'text': ..., 'start_time': ..., 'end_time': ...}, ...] 형식 리스트로 반환
+
+        Redis 캐싱 적용:
+        - 캐시 hit: Redis에서 반환 (< 1ms)
+        - 캐시 miss: YouTube API 호출 후 캐싱 (5-10초)
+        - 병렬 처리 경쟁 조건: Lock을 사용하여 중복 API 호출 방지
+        - TTL: 30일 (자막은 불변 데이터)
+        """
+        cache_key = f"transcript:{video_id}"
+        lock_key = f"transcript:lock:{video_id}"
+
+        # Redis 클라이언트 가져오기
+        redis_client = await get_redis_client()
+
+        # Redis 사용 불가 시 직접 조회
+        if redis_client is None:
+            logger.warning(f"⚠️  Redis 없이 Transcript 조회: {video_id}")
+            return self._fetch_and_structure(video_id, languages)
+
+        # 1. Redis 캐시 확인
+        try:
+            cached = await redis_client.get(cache_key)
+            if cached:
+                logger.info(f"✅ Transcript cache hit: {video_id}")
+                return json.loads(cached)
+        except Exception as e:
+            logger.error(f"❌ Redis 조회 실패: {e}")
+            # Redis 오류 시 직접 조회
+            return self._fetch_and_structure(video_id, languages)
+
+        # 2. Lock 획득 시도 (다른 consumer가 조회 중인지 확인)
+        try:
+            acquired = await redis_client.set(lock_key, "1", nx=True, ex=30)
+
+            if acquired:
+                # 이 consumer가 조회 담당
+                logger.info(f"🔒 Transcript lock 획득, YouTube API 호출: {video_id}")
+
+                try:
+                    # YouTube API 호출
+                    structured = self._fetch_and_structure(video_id, languages)
+
+                    # Redis에 캐싱 (30일)
+                    ttl = 30 * 24 * 3600  # 30일
+                    await redis_client.setex(
+                        cache_key,
+                        ttl,
+                        json.dumps(structured, ensure_ascii=False)
+                    )
+                    logger.info(f"💾 Transcript cached (30d TTL): {video_id}")
+
+                    return structured
+
+                finally:
+                    # Lock 해제
+                    await redis_client.delete(lock_key)
+
+            else:
+                # 다른 consumer가 조회 중 → 대기 후 캐시 확인
+                logger.info(f"⏳ 다른 consumer가 Transcript 조회 중, 대기: {video_id}")
+
+                for attempt in range(30):  # 최대 30초 대기
+                    await asyncio.sleep(1)
+
+                    cached = await redis_client.get(cache_key)
+                    if cached:
+                        logger.info(f"✅ Transcript cache hit (대기 후): {video_id}")
+                        return json.loads(cached)
+
+                # 타임아웃 → 직접 조회
+                logger.warning(f"⏰ Transcript cache 대기 타임아웃, 직접 조회: {video_id}")
+                return self._fetch_and_structure(video_id, languages)
+
+        except Exception as e:
+            logger.error(f"❌ Redis lock 처리 실패: {e}")
+            # Lock 오류 시 직접 조회
+            return self._fetch_and_structure(video_id, languages)
+
+    def _fetch_and_structure(self, video_id: str, languages=['ko', 'en']) -> list[dict]:
+        """
+        YouTube API로 자막을 조회하고 구조화된 형식으로 반환
+        (내부 헬퍼 메서드)
         """
         transcription = self.fetch_transcript(video_id, languages)
         if not transcription:
