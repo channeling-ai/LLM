@@ -1,4 +1,5 @@
 import os
+import asyncio
 import logging
 from typing import Optional
 import redis.asyncio as redis
@@ -12,33 +13,36 @@ class RedisClient:
     """Redis 클라이언트 싱글톤"""
 
     _instance: Optional[redis.Redis] = None
+    _lock = asyncio.Lock()
 
     @classmethod
     async def get_instance(cls) -> redis.Redis:
         """Redis 클라이언트 인스턴스 반환 (싱글톤)"""
         if cls._instance is None:
-            redis_host = os.getenv("REDIS_HOST", "localhost")
-            redis_port = int(os.getenv("REDIS_PORT", "6379"))
-            redis_password = os.getenv("REDIS_PASSWORD", None)
-            redis_db = int(os.getenv("REDIS_DB", "0"))
+            async with cls._lock:
+                if cls._instance is None:
+                    redis_host = os.getenv("REDIS_HOST", "localhost")
+                    redis_port = int(os.getenv("REDIS_PORT", "6379"))
+                    redis_password = os.getenv("REDIS_PASSWORD", None)
+                    redis_db = int(os.getenv("REDIS_DB", "0"))
 
-            try:
-                cls._instance = redis.Redis(
-                    host=redis_host,
-                    port=redis_port,
-                    password=redis_password,
-                    db=redis_db,
-                    decode_responses=True,
-                    socket_connect_timeout=5,
-                    socket_timeout=5,
-                    retry_on_timeout=True,
-                )
+                    try:
+                        cls._instance = redis.Redis(
+                            host=redis_host,
+                            port=redis_port,
+                            password=redis_password,
+                            db=redis_db,
+                            decode_responses=True,
+                            socket_connect_timeout=5,
+                            socket_timeout=5,
+                            retry_on_timeout=True,
+                        )
 
-                # 연결 테스트
-                await cls._instance.ping()
+                        # 연결 테스트
+                        await cls._instance.ping()
 
-            except Exception as e:
-                cls._instance = None
+                    except Exception as e:
+                        cls._instance = None
 
         return cls._instance
 
