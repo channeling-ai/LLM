@@ -92,7 +92,7 @@ class TranscriptService:
         # Redis 사용 불가 시 직접 조회
         if redis_client is None:
             logger.warning(f"⚠️  Redis 없이 Transcript 조회: {video_id}")
-            return self._fetch_and_structure(video_id, languages)
+            return await self._fetch_and_structure_async(video_id, languages)
 
         # 1. Redis 캐시 확인
         try:
@@ -103,7 +103,7 @@ class TranscriptService:
         except Exception as e:
             logger.error(f"❌ Redis 조회 실패: {e}")
             # Redis 오류 시 직접 조회
-            return self._fetch_and_structure(video_id, languages)
+            return await self._fetch_and_structure_async(video_id, languages)
 
         # 2. Lock 획득 시도 (다른 consumer가 조회 중인지 확인)
         try:
@@ -115,7 +115,7 @@ class TranscriptService:
 
                 try:
                     # YouTube API 호출
-                    structured = self._fetch_and_structure(video_id, languages)
+                    structured = await self._fetch_and_structure_async(video_id, languages)
 
                     # Redis에 캐싱 (30일)
                     ttl = 30 * 24 * 3600  # 30일
@@ -146,12 +146,12 @@ class TranscriptService:
 
                 # 타임아웃 → 직접 조회
                 logger.warning(f"⏰ Transcript cache 대기 타임아웃, 직접 조회: {video_id}")
-                return self._fetch_and_structure(video_id, languages)
+                return await self._fetch_and_structure_async(video_id, languages)
 
         except Exception as e:
             logger.error(f"❌ Redis lock 처리 실패: {e}")
             # Lock 오류 시 직접 조회
-            return self._fetch_and_structure(video_id, languages)
+            return await self._fetch_and_structure_async(video_id, languages)
 
     def _fetch_and_structure(self, video_id: str, languages=['ko', 'en']) -> list[dict]:
         """
@@ -171,3 +171,10 @@ class TranscriptService:
             })
 
         return structured
+
+    async def _fetch_and_structure_async(self, video_id: str, languages=['ko', 'en']) -> list[dict]:
+        """_fetch_and_structure의 비동기 래퍼"""
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(
+            None, self._fetch_and_structure, video_id, languages
+        )
