@@ -42,3 +42,6 @@ serpapi
 
 # isodate
 isodate
+
+#redis
+redis
