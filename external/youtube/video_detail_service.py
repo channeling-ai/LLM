@@ -4,46 +4,79 @@ from googleapiclient.errors import HttpError
 import os
 from typing import Dict, Optional, List
 import logging
+import json
+
+from core.cache.redis_client import get_redis_client
 
 logger = logging.getLogger(__name__)
 load_dotenv()
 
 class VideoDetailService:
     """YouTube Video Data API 서비스"""
-    
+
     def __init__(self):
         self.api_key = os.getenv('YOUTUBE_API_KEY')
         if not self.api_key:
             logger.warning("YOUTUBE_API_KEY not found in environment variables")
         self.youtube = build('youtube', 'v3', developerKey=self.api_key)
-    
-    def get_video_details(self, video_id: str) -> Dict:
+
+    async def get_video_details(self, video_id: str) -> Dict:
         """
-        영상 상세 정보 조회
-        
+        영상 상세 정보 조회 (Redis 캐싱 적용, 5분 TTL)
+
         Args:
             video_id: YouTube 영상 ID
-            
+
         Returns:
             영상 정보 딕셔너리 (제목, 설명, 태그, 통계 등)
         """
+        cache_key = f"video_detail:{video_id}"
+
+        # Redis 클라이언트 가져오기
+        redis_client = await get_redis_client()
+        if redis_client is None:
+            logger.warning("Redis 캐시 없이 YouTube API 직접 호출")
+            return self._fetch_video_details(video_id)
+
+        try:
+            # 캐시 확인
+            cached = await redis_client.get(cache_key)
+            if cached:
+                logger.info(f"✅ Redis 캐시 HIT: video_detail:{video_id}")
+                return json.loads(cached)
+
+            # 캐시 미스 - API 호출 후 캐싱
+            logger.info(f"⚠️  Redis 캐시 MISS: video_detail:{video_id}")
+            data = self._fetch_video_details(video_id)
+
+            # 5분 TTL로 캐싱
+            await redis_client.setex(cache_key, 300, json.dumps(data))
+            logger.info(f"💾 Redis 캐시 저장: video_detail:{video_id} (TTL: 5분)")
+            return data
+
+        except Exception as e:
+            logger.warning(f"Redis 캐시 처리 실패, API 직접 호출: {e}")
+            return self._fetch_video_details(video_id)
+
+    def _fetch_video_details(self, video_id: str) -> Dict:
+        """YouTube API로 영상 상세 정보 조회 (내부 메서드)"""
         try:
             response = self.youtube.videos().list(
                 part='snippet,statistics,contentDetails',
                 id=video_id
             ).execute()
-            
+
             if not response.get('items'):
                 logger.error(f"Video {video_id} not found")
                 return {}
-            
+
             video = response['items'][0]
             # 필요한 정보 추출
-            
+
             snippet = video.get('snippet', {})
             statistics = video.get('statistics', {})
             content_details = video.get('contentDetails', {})
-            
+
             return {
                 'title': snippet.get('title', ''),
                 'description': snippet.get('description', ''),
@@ -59,9 +92,9 @@ class VideoDetailService:
                 'viewCount': int(statistics.get('viewCount', 0)),
                 'likeCount': int(statistics.get('likeCount', 0)),
                 'commentCount': int(statistics.get('commentCount', 0))
-                
+
             }
-            
+
         except HttpError as e:
             if e.resp.status == 403:
                 logger.error("YouTube API quota exceeded")
