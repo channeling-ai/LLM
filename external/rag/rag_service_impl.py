@@ -123,7 +123,11 @@ class RagServiceImpl(RagService):
 
         # 3. 텍스트로 변환하여 Vector DB에 저장
         for popular in popular_videos:
-            pop_video_text = f"""제목: {popular['video_title']}, 설명: {popular['video_description']}, 태그: {popular['video_hash_tag']}"""
+            pop_video_text = (
+                f"제목(가중치 높음): {popular['video_title']}.\n"
+                f"주요 태그: {popular['video_hash_tag']}.\n"
+                f"영상 설명: {popular['video_description'][:500]}"  # 너무 길면 일부만
+            )
             await self.content_chunk_repository.save_context(
                 source_type=SourceTypeEnum.IDEA_RECOMMENDATION,
                 source_id=int(category.value),
@@ -160,7 +164,7 @@ class RagServiceImpl(RagService):
             query_text = f"컨셉: {channel.concept}, 카테고리: {channel.channel_hash_tag}, 최근 영상 요약: {summary}"
 
             video_embedding = await self.content_chunk_repository.generate_embedding(query_text)
-            meta_data = {"query_embedding": str(video_embedding), "source_id": channel.channel_hash_tag.value}
+            meta_data = {"query_embedding": str(video_embedding), "source_id": int(channel.channel_hash_tag.value)}
             similar_chunks = await self.content_chunk_repository.search_similar_by_embedding(
                 SourceTypeEnum.IDEA_RECOMMENDATION, metadata=meta_data, limit=5
             )
@@ -177,7 +181,7 @@ class RagServiceImpl(RagService):
                 "popularity": popularity_context
             }
             full_prompt = PromptTemplateManager.get_idea_prompt(input_data)
-            logger.info("🤖 LLM 호출 전 전체 프롬프트:\n%s", full_prompt)
+            logger.info("🤖 아이디어 생성 - LLM 호출 전 전체 프롬프트:\n%s", full_prompt)
 
             # 4. LLM 실행
             llm_start = time.time()
