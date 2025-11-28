@@ -22,6 +22,8 @@ from domain.video.service.video_service import VideoService
 from external.rag import leave_analyize
 from external.rag.rag_service_impl import RagServiceImpl
 from external.youtube.youtube_comment_service import YoutubeCommentService
+from core.cache.redis_client import RedisService  # 합쳐진 RedisService
+
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +42,8 @@ class ReportConsumerImplV2(ReportConsumer):
         self.idea_service = IdeaService()
         self.youtube_comment_service = YoutubeCommentService()
         self.video_service = VideoService()
+        self.redis_service = RedisService()  # 기본 host/port 사용
+
  
 
     async def _get_report_and_video(self, message: Dict[str, Any]) -> Optional[Tuple[Any, Any]]:
@@ -131,6 +135,14 @@ class ReportConsumerImplV2(ReportConsumer):
                 })
                 logger.info(f"Task ID {task.id}의 overview_status를 COMPLETED로 업데이트했습니다.")
 
+                # redis 에 완료 메시지 보내기
+                channel = await self.channel_repository.find_by_id(getattr(video, "channel_id", None))
+                user_id = getattr(channel, 'member_id', None)
+
+                await self.redis_service.publish(
+                        user_id=str(user_id),
+                        message=json.dumps({"status": "success", "step": "overview"})
+                    )
         except Exception as e:
             logger.error(f"handle_overview 처리 중 오류 발생: {e}")
             # task 정보 업데이트
@@ -140,6 +152,10 @@ class ReportConsumerImplV2(ReportConsumer):
                     "id": task.id,
                     "overview_status": Status.FAILED
                 })
+                await self.redis_service.publish(
+                        user_id=str(user_id),
+                        message=json.dumps({"status": "fail", "step": "overview"})
+                    )
                 logger.info(f"Task ID {task.id}의 overview_status를 FAILED로 업데이트했습니다.")
         finally:
             end_time = time.time()  # 종료 시간 기록
@@ -187,6 +203,15 @@ class ReportConsumerImplV2(ReportConsumer):
                     "analysis_status": Status.COMPLETED
                 })
                 logger.info(f"Task ID {task.id}의 analysis_status를 COMPLETED로 업데이트했습니다.")
+                
+                # redis 에 완료 메시지 보내기
+                channel = await self.channel_repository.find_by_id(getattr(video, "channel_id", None))
+                user_id = getattr(channel, 'member_id', None)
+
+                await self.redis_service.publish(
+                        user_id=str(user_id),
+                        message=json.dumps({"status": "success", "step": "analysis"})
+                    )
 
         except Exception as e:
             logger.error(f"handle_analysis 처리 중 오류 발생: {e}")
@@ -197,6 +222,10 @@ class ReportConsumerImplV2(ReportConsumer):
                     "id": task.id,
                     "analysis_status": Status.FAILED
                 })
+                await self.redis_service.publish(
+                        user_id=str(user_id),
+                        message=json.dumps({"status": "fail", "step": "analysis"})
+                    )
                 logger.info(f"Task ID {task.id}의 analysis_status를 FAILED로 업데이트했습니다.")
         finally:
             end_time = time.time()  # 종료 시간 기록
