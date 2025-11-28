@@ -22,7 +22,8 @@ from domain.video.service.video_service import VideoService
 from external.rag import leave_analyize
 from external.rag.rag_service_impl import RagServiceImpl
 from external.youtube.youtube_comment_service import YoutubeCommentService
-from external.redis.redis_service import RedisService
+from core.cache.redis_client import RedisService  # 합쳐진 RedisService
+
 
 logger = logging.getLogger(__name__)
 
@@ -151,6 +152,10 @@ class ReportConsumerImplV2(ReportConsumer):
                     "id": task.id,
                     "overview_status": Status.FAILED
                 })
+                await self.redis_service.publish(
+                        user_id=str(user_id),
+                        message=json.dumps({"status": "fail", "step": "overview"})
+                    )
                 logger.info(f"Task ID {task.id}의 overview_status를 FAILED로 업데이트했습니다.")
         finally:
             end_time = time.time()  # 종료 시간 기록
@@ -217,6 +222,10 @@ class ReportConsumerImplV2(ReportConsumer):
                     "id": task.id,
                     "analysis_status": Status.FAILED
                 })
+                await self.redis_service.publish(
+                        user_id=str(user_id),
+                        message=json.dumps({"status": "fail", "step": "analysis"})
+                    )
                 logger.info(f"Task ID {task.id}의 analysis_status를 FAILED로 업데이트했습니다.")
         finally:
             end_time = time.time()  # 종료 시간 기록

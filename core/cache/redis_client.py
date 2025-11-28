@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
+
 
 class RedisClient:
     """Redis 클라이언트 싱글톤"""
@@ -62,3 +64,28 @@ async def get_redis_client() -> Optional[redis.Redis]:
     Redis 연결 실패 시 None을 반환합니다 (캐싱 비활성화).
     """
     return await RedisClient.get_instance()
+
+class RedisService:
+    """Redis publish 전용 서비스"""
+
+    def __init__(self, channel: str = "complete"):
+        self.channel = channel
+        self._client: Optional[redis.Redis] = None
+
+    async def _get_client(self) -> Optional[redis.Redis]:
+        if not self._client:
+            self._client = await RedisClient.get_instance()
+        return self._client
+
+    async def publish(self, user_id: str, message: str):
+        """Redis 채널에 메시지 발행"""
+        client = await self._get_client()
+        if not client:
+            logger.warning("Redis 연결 실패: 메시지를 발행할 수 없습니다.")
+            return
+        try:
+            payload = json.dumps({"userId": user_id, "message": message})
+            await client.publish(self.channel, payload)
+            logger.info(f"📤 Redis Publish: {payload}")
+        except Exception as e:
+            logger.error(f"Redis Publish 실패: {e!r}")
