@@ -4,6 +4,8 @@ import logging
 from typing import Optional
 import redis.asyncio as redis
 from dotenv import load_dotenv
+import json  
+
 
 load_dotenv()
 
