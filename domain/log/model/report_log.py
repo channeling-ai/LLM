@@ -1,13 +1,12 @@
-from enum import Enum
 from typing import Optional
 from datetime import datetime
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import Field, ConfigDict
 from pydantic.alias_generators import to_camel
 
 from sqlmodel import SQLModel
 
-from domain.log import DeleteType
-from domain.log.TaskStatus import TaskStatus
+from domain.log.model.delete_type import DeleteType
+from domain.log.model.task_status import TaskStatus
 
 
 class ReportLog(SQLModel, table=True):

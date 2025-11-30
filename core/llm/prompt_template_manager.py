@@ -397,3 +397,43 @@ Google Trends 데이터를 기반으로 현재 가장 주목받는 키워드를 
 채널 정보: {context}
 분석 요청: {input}
 답변:""".strip()
+
+    @staticmethod
+    def summarize_update_changes(data: dict) -> str:
+        """
+        이전 로그와 현재 리포트를 비교하는 프롬프트를 생성합니다.
+        data 딕셔너리에 이미 가공된 문자열 정보가 들어있어야 합니다.
+        """
+        return f"""
+# Role
+당신은 유튜브 채널 성장 전문가이자 데이터 분석가입니다. 
+사용자의 지난 리포트와 새로 업데이트된 리포트 데이터를 비교하여, 성과 변화를 한 문단으로 요약하는 것이 당신의 임무입니다.
+
+# Task
+제공된 [이전 데이터]와 [현재 데이터]를 비교 분석하여 **업데이트 요약 리포트**를 작성하세요.
+
+# Input Data
+## 1. 영상 기본 정보
+- 제목: {data.get('title')}
+
+## 2. 이전 데이터 (Past)
+- 조회수: {data.get('prev_view')}회 (채널평균 대비: {data.get('prev_view_diff')})
+- 좋아요: {data.get('prev_like')}개
+- 댓글 수: 전체 {data.get('prev_comment')} (긍정 {data.get('prev_pos')} / 부정 {data.get('prev_neg')})
+- 성과 지표(점수): 컨셉 {data.get('prev_concept')}, SEO {data.get('prev_seo')}, 재방문 {data.get('prev_revisit')}
+- 이탈 분석 요약: {data.get('prev_leave')}
+
+## 3. 현재 데이터 (Current)
+- 조회수: {data.get('curr_view')}회 (채널평균 대비: {data.get('curr_view_diff')})
+- 좋아요: {data.get('curr_like')}개
+- 댓글 수: 전체 {data.get('curr_comment')} (긍정 {data.get('curr_pos')} / 부정 {data.get('curr_neg')})
+- 성과 지표(점수): 컨셉 {data.get('curr_concept')}, SEO {data.get('curr_seo')}, 재방문 {data.get('curr_revisit')}
+- 이탈 분석 요약: {data.get('curr_leave')}
+
+# Guidelines
+1. **변화 중심 서술**: 단순히 수치를 나열하지 말고, 의미 있는 변화(예: 조회수 급증, 긍정 반응 비율 상승 등)를 중심으로 해석하세요.
+2. **성과 강조**: 지표가 하락했더라도, 개선점이나 긍정적인 부분(예: 재방문 점수 유지 등)을 함께 언급하여 격려하세요.
+3. **분석 내용 반영**: '이탈 분석' 내용이 변경되었다면, 시청자 반응 패턴이 달라졌음을 언급하세요.
+4. **톤앤매너**: 전문적이지만 친절하고 격려하는 "해요체"를 사용하세요.
+5. **분량**: 핵심 내용만 담아 3~4문장 내외의 한 문단으로 작성하세요.
+        """
