@@ -1,24 +1,18 @@
 from typing import Optional
 from datetime import datetime
-from pydantic import Field, ConfigDict
-from pydantic.alias_generators import to_camel
 
-from sqlmodel import SQLModel
+from sqlmodel import SQLModel, Field
 
 from domain.log.model.delete_type import DeleteType
 from domain.log.model.task_status import TaskStatus
 
 
 class ReportLog(SQLModel, table=True):
-    # 기본 설정: snake_case <-> camelCase 자동 변환
-    model_config = ConfigDict(
-        alias_generator=to_camel,
-        populate_by_name=True,
-        from_attributes=True  # ORM 객체에서 데이터 읽기 허용
-    )
+    __tablename__ = "report_log"
+
 
     # ID는 생성 전에는 없을 수 있으므로 Optional
-    id: Optional[int] = None
+    id: Optional[int] = Field(default=None, primary_key=True)
     logged_at: Optional[datetime] = None
 
     report_id: Optional[int] = None
