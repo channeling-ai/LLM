@@ -464,7 +464,10 @@ class RagServiceImpl(RagService):
                 if val is None or avg is None or avg == 0:
                     return "정보 없음"
                 diff = val - avg
-                return f"{'+' if diff > 0 else ''}{int(diff)}"
+                if isinstance(val, float) or isinstance(avg, float):
+                    return f"{'+' if diff > 0 else ''}{diff:.2f}"  # 소수점 2자리까지 표현
+                else:
+                    return f"{'+' if diff > 0 else ''}{int(diff)}"
 
             # 2. 템플릿에 전달할 데이터 준비 (dict 변환)
             template_data = {

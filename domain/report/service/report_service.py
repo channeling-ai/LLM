@@ -330,8 +330,7 @@ class ReportService:
 
             # 4. 결과 저장
             current_report.update_summary = update_summary_text
-            # update_partial 대신 save를 사용하여 전체 객체 업데이트 (또는 update_partial 사용 가능)
-            await self.report_repository.save(current_report.model_dump())
+            await self.report_repository.save({"id": current_report.id, "update_summary": update_summary_text})
 
             return True
 

@@ -12,11 +12,13 @@ from domain.channel.repository.channel_repository import ChannelRepository
 from domain.idea.repository.idea_repository import IdeaRepository
 from domain.report.repository.report_repository import ReportRepository
 from domain.report.service.report_producer import ReportProducer
+from domain.report.service.report_service import ReportService
 from domain.task.model.task import Status
 from domain.task.repository.task_repository import TaskRepository
 from domain.video.repository.video_repository import VideoRepository
 from external.rag.rag_service_impl import RagServiceImpl
 from response.api_response import ApiResponse
+from response.code.status.error_status import ErrorStatus
 from response.code.status.success_status import SuccessStatus
 
 
@@ -138,3 +140,39 @@ async def create_report_v2(video_id: int, request: CreateReportRequest):
     await report_producer.send_message("analysis-topic-v2", analysis_message)
 
     return ApiResponse.on_success(SuccessStatus._OK, {"task_id": task.id, "version": "v2"})
+
+# TODO 삭제해라 허유진
+# 의존성 주입
+report_service = ReportService()
+@router.post("/summary/{report_id}")
+async def test_create_update_summary(report_id: int):
+    """
+    [테스트용] 특정 리포트에 대한 업데이트 변경점 요약을 생성합니다.
+    - 선행 조건: 해당 Report가 존재해야 하며, 연관된 Video에 대한 이전 ReportLog가 DB에 존재해야 함.
+    """
+    logger.info(f"🧪 [TEST] 업데이트 요약 생성 요청 - Report ID: {report_id}")
+
+    try:
+        # 1. 서비스 로직 실행 (요약 생성 및 저장)
+        is_success = await report_service.summarize_update_changes(report_id)
+
+        if not is_success:
+            return ApiResponse.on_failure(
+                ErrorStatus.INTERNAL_SERVER_ERROR,
+                {"detail": "요약 생성 실패 (이전 로그가 없거나 에러 발생)"}
+            )
+
+        # 2. 결과 확인을 위해 저장된 리포트 조회
+        updated_report = await report_repository.find_by_id(report_id)
+
+        return ApiResponse.on_success(
+            SuccessStatus._OK,
+            {
+                "report_id": updated_report.id,
+                "update_summary": updated_report.update_summary
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"테스트 중 에러 발생: {e}")
+        return ApiResponse.on_failure(ErrorStatus.INTERNAL_SERVER_ERROR, {"error": str(e)})
