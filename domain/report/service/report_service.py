@@ -142,7 +142,7 @@ class ReportService:
             if not skip_vector_save:
                 await self.content_chunk_repository.save_context(
                     source_type=SourceTypeEnum.VIEWER_ESCAPE_ANALYSIS,
-                    source_id=report_id,
+                    source_id=int(report_id),
                     context=leave_result
                 )
             else:

@@ -5,7 +5,6 @@ import logging
 import time
 from typing import Any, Dict, Optional, Tuple
 
-from core.enums.source_type import SourceTypeEnum
 from domain.channel.repository.channel_repository import ChannelRepository
 from domain.comment.service.comment_service import CommentService
 from domain.content_chunk.repository.content_chunk_repository import ContentChunkRepository
@@ -141,7 +140,7 @@ class ReportConsumerImplV2(ReportConsumer):
 
                 await self.redis_service.publish(
                         user_id=str(user_id),
-                        message=json.dumps({"status": "success", "step": "overview"})
+                        message=json.dumps({"status": "success", "step": "overview", "report": report.id})
                     )
         except Exception as e:
             logger.error(f"handle_overview 처리 중 오류 발생: {e}")
@@ -168,6 +167,7 @@ class ReportConsumerImplV2(ReportConsumer):
         """보고서 분석 요청 처리"""
         logger.info(f"[V2] Handling analysis request")
         start_time = time.time()  # 시작 시간 기록
+        user_id = None
         
         try:
             # 공통 메서드로 report와 video 정보 조회
@@ -210,7 +210,7 @@ class ReportConsumerImplV2(ReportConsumer):
 
                 await self.redis_service.publish(
                         user_id=str(user_id),
-                        message=json.dumps({"status": "success", "step": "analysis"})
+                        message=json.dumps({"status": "success", "step": "analysis", "report": report.id})
                     )
 
         except Exception as e:
@@ -222,11 +222,13 @@ class ReportConsumerImplV2(ReportConsumer):
                     "id": task.id,
                     "analysis_status": Status.FAILED
                 })
-                await self.redis_service.publish(
-                        user_id=str(user_id),
-                        message=json.dumps({"status": "fail", "step": "analysis"})
-                    )
-                logger.info(f"Task ID {task.id}의 analysis_status를 FAILED로 업데이트했습니다.")
+
+                if user_id:
+                    await self.redis_service.publish(
+                            user_id=str(user_id),
+                            message=json.dumps({"status": "fail", "step": "analysis"})
+                        )
+                    logger.info(f"Task ID {task.id}의 analysis_status를 FAILED로 업데이트했습니다.")
         finally:
             end_time = time.time()  # 종료 시간 기록
             elapsed_time = end_time - start_time
