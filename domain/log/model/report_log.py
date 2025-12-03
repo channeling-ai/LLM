@@ -4,7 +4,7 @@ from datetime import datetime
 from sqlmodel import SQLModel, Field
 
 from domain.log.model.delete_type import DeleteType
-from domain.log.model.task_status import TaskStatus
+from domain.task.model.task import Status
 
 
 class ReportLog(SQLModel, table=True):
@@ -50,8 +50,8 @@ class ReportLog(SQLModel, table=True):
     updated_at: Optional[datetime] = None
 
     # [로그에서만 추가]
-    overview_status: Optional[TaskStatus] = None  # 개요 생성 상태
-    analyze_status: Optional[TaskStatus] = None  # 분석 생성 상태
+    overview_status: Optional[Status] = None  # 개요 생성 상태
+    analyze_status: Optional[Status] = None  # 분석 생성 상태
 
     delete_type: Optional[DeleteType] = None  # 삭제 타입 확인
 
