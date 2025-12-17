@@ -84,6 +84,12 @@ class ReportConsumerImplV2(ReportConsumer):
             
         return report, video
 
+    async def create_summary_update(self, report_id):
+        task = await self.task_repository.find_by_report(report_id)
+        if task.overview_status == Status.COMPLETED and task.analysis_status == Status.COMPLETED:
+            logger.info(f"모든 작업 완료. 요약 생성 시작 (Report {report_id})")
+            await self.report_service.summarize_update_changes(report_id)
+
 
     async def handle_overview_v2(self, message: Dict[str, Any]):
         logger.info(f"[V2] Handling overview request")
@@ -142,6 +148,9 @@ class ReportConsumerImplV2(ReportConsumer):
                         user_id=str(user_id),
                         message=json.dumps({"status": "success", "step": "overview", "report": report.id})
                     )
+
+            await self.create_summary_update(report.id)
+
         except Exception as e:
             logger.error(f"handle_overview 처리 중 오류 발생: {e}")
             # task 정보 업데이트
@@ -212,6 +221,8 @@ class ReportConsumerImplV2(ReportConsumer):
                         user_id=str(user_id),
                         message=json.dumps({"status": "success", "step": "analysis", "report": report.id})
                     )
+
+            await self.create_summary_update(report.id)
 
         except Exception as e:
             logger.error(f"handle_analysis 처리 중 오류 발생: {e}")
