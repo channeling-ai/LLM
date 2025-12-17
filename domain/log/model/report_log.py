@@ -63,7 +63,12 @@ class ReportLog(SQLModel, table=True):
         )
     )
 
-    delete_type: Optional[DeleteType] = None  # 삭제 타입 확인
+    delete_type: DeleteType = Field(
+        sa_column=Column(
+            SAEnum(DeleteType, name="deletetype", native_enum=False),
+            nullable=False
+        )
+    )
 
     # [로그에서만 추가] 댓글 내용 (length=400)
     positive_comment_content: Optional[str] = Field(None, max_length=400)

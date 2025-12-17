@@ -319,7 +319,7 @@ class ReportService:
                 return False
 
             # 2. 이전 리포트 로그 조회 (가장 최근 것)
-            prev_log = await self.report_log_repository.find_by_video(current_report.video_id)
+            prev_log = await self.report_log_repository.find_by_video_for_update(current_report.video_id)
 
             if not prev_log:
                 logger.info("이전 리포트 로그가 없어 업데이트 요약을 생략합니다.")
