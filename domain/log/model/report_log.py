@@ -2,7 +2,7 @@ from typing import Optional
 from datetime import datetime
 
 from sqlmodel import SQLModel, Field
-
+from sqlalchemy import Column, Enum as SAEnum
 from domain.log.model.delete_type import DeleteType
 from domain.task.model.task import Status
 
@@ -50,8 +50,18 @@ class ReportLog(SQLModel, table=True):
     updated_at: Optional[datetime] = None
 
     # [로그에서만 추가]
-    overview_status: Optional[Status] = None  # 개요 생성 상태
-    analyze_status: Optional[Status] = None  # 분석 생성 상태
+    overview_status: Status = Field(
+        sa_column=Column(
+            SAEnum(Status, name="status", native_enum=False),
+            nullable=False
+        )
+    )
+    analyze_status: Status = Field(
+        sa_column=Column(
+            SAEnum(Status, name="status", native_enum=False),
+            nullable=False
+        )
+    )
 
     delete_type: Optional[DeleteType] = None  # 삭제 타입 확인
 
