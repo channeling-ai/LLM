@@ -22,7 +22,7 @@ class ReportLogRepository(CRUDRepository[ReportLog]):
                         ReportLog.video_id == video_id,
                         ReportLog.overview_status == Status.COMPLETED,
                         ReportLog.analyze_status == Status.COMPLETED,
-                        ReportLog.delete_type == DeleteType.AUTO
+                        ReportLog.delete_type == DeleteType.REPLACED
                     )
                 )
                 .order_by(desc(ReportLog.created_at))
