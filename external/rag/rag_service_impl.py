@@ -17,19 +17,15 @@ from domain.channel.model.channel import Channel
 from domain.comment.model.comment_type import CommentType
 from domain.content_chunk.repository.content_chunk_repository import ContentChunkRepository
 from domain.idea.dto.idea_dto import IdeaRequest
+from domain.log.model.report_log import ReportLog
+from domain.report.model.report import Report
+from domain.trend_keyword.model.trend_keyword import TrendKeyword
 from external.rag.rag_service import RagService
 from external.youtube.transcript_service import TranscriptService
 from external.youtube.trend_service import TrendService
 from external.youtube.video_detail_service import VideoDetailService
 from external.youtube.youtube_comment_service import YoutubeCommentService
 from external.youtube.youtube_video_service import VideoService
-from typing import List, Dict, Any
-from datetime import datetime
-from domain.trend_keyword.model.trend_keyword import TrendKeyword
-import json
-import logging
-import time
-
 
 logger = logging.getLogger(__name__)
 
@@ -123,7 +119,11 @@ class RagServiceImpl(RagService):
 
         # 3. 텍스트로 변환하여 Vector DB에 저장
         for popular in popular_videos:
-            pop_video_text = f"""제목: {popular['video_title']}, 설명: {popular['video_description']}, 태그: {popular['video_hash_tag']}"""
+            pop_video_text = (
+                f"제목(가중치 높음): {popular['video_title']}.\n"
+                f"주요 태그: {popular['video_hash_tag']}.\n"
+                f"영상 설명: {popular['video_description'][:500]}"  # 너무 길면 일부만
+            )
             await self.content_chunk_repository.save_context(
                 source_type=SourceTypeEnum.IDEA_RECOMMENDATION,
                 source_id=int(category.value),
@@ -160,7 +160,7 @@ class RagServiceImpl(RagService):
             query_text = f"컨셉: {channel.concept}, 카테고리: {channel.channel_hash_tag}, 최근 영상 요약: {summary}"
 
             video_embedding = await self.content_chunk_repository.generate_embedding(query_text)
-            meta_data = {"query_embedding": str(video_embedding), "source_id": channel.channel_hash_tag.value}
+            meta_data = {"query_embedding": str(video_embedding), "source_id": int(channel.channel_hash_tag.value)}
             similar_chunks = await self.content_chunk_repository.search_similar_by_embedding(
                 SourceTypeEnum.IDEA_RECOMMENDATION, metadata=meta_data, limit=5
             )
@@ -177,7 +177,7 @@ class RagServiceImpl(RagService):
                 "popularity": popularity_context
             }
             full_prompt = PromptTemplateManager.get_idea_prompt(input_data)
-            logger.info("🤖 LLM 호출 전 전체 프롬프트:\n%s", full_prompt)
+            logger.info("🤖 아이디어 생성 - LLM 호출 전 전체 프롬프트:\n%s", full_prompt)
 
             # 4. LLM 실행
             llm_start = time.time()
@@ -446,4 +446,73 @@ class RagServiceImpl(RagService):
         # self.llm이 직접 프롬프트 문자열을 받아 실행하는 함수라고 가정
         result = self.llm.invoke(prompt)
         return result.content
-        
+
+    async def create_update_summary(self, prev_report: ReportLog, curr_report: Report):
+        """
+        리포트 업데이트 시 변경점 요약 생성
+        """
+
+        try:
+            # 1. 데이터 가공 헬퍼 함수 (내부 정의)
+            def safe_get(val, default=0):
+                return val if val is not None else default
+
+            def summarize_text(text):
+                return text[:100] + "..." if text and len(text) > 100 else (text or "내용 없음")
+
+            def calc_diff_msg(val, avg):
+                if val is None or avg is None or avg == 0:
+                    return "정보 없음"
+                diff = val - avg
+                if isinstance(val, float) or isinstance(avg, float):
+                    return f"{'+' if diff > 0 else ''}{diff:.2f}"  # 소수점 2자리까지 표현
+                else:
+                    return f"{'+' if diff > 0 else ''}{int(diff)}"
+
+            # 2. 템플릿에 전달할 데이터 준비 (dict 변환)
+            template_data = {
+                "title": curr_report.title,
+
+                # 이전 데이터
+                "prev_view": safe_get(prev_report.view),
+                "prev_view_diff": calc_diff_msg(prev_report.view, prev_report.view_channel_avg),
+                "prev_like": safe_get(prev_report.like_count),
+                "prev_comment": safe_get(prev_report.comment),
+                "prev_pos": safe_get(prev_report.positive_comment),
+                "prev_neg": safe_get(prev_report.negative_comment),
+                "prev_concept": safe_get(prev_report.concept),
+                "prev_seo": safe_get(prev_report.seo),
+                "prev_revisit": safe_get(prev_report.revisit),
+                "prev_leave": summarize_text(prev_report.leave_analyze),
+
+                # 현재 데이터
+                "curr_view": safe_get(curr_report.view),
+                "curr_view_diff": calc_diff_msg(curr_report.view, curr_report.view_channel_avg),
+                "curr_like": safe_get(curr_report.like_count),
+                "curr_comment": safe_get(curr_report.comment),
+                "curr_pos": safe_get(curr_report.positive_comment),
+                "curr_neg": safe_get(curr_report.negative_comment),
+                "curr_concept": safe_get(curr_report.concept),
+                "curr_seo": safe_get(curr_report.seo),
+                "curr_revisit": safe_get(curr_report.revisit),
+                "curr_leave": summarize_text(curr_report.leave_analyze),
+            }
+
+            # 탬플릿 생성
+            update_summary_prompt = PromptTemplateManager.summarize_update_changes(template_data)
+
+            # 4. LLM 실행
+            llm_start = time.time()
+            logger.info("🤖 업데이트 요약 LLM 실행 중...")
+
+            response = await self.llm.ainvoke(update_summary_prompt)
+            update_summary_text = response.content # 객체에서 문자열 추출
+
+            llm_time = time.time() - llm_start
+            logger.info(f"🤖 업데이트 요약 LLM 실행 완료 ({llm_time:.2f}초)")
+
+            return update_summary_text
+
+        except Exception as e:
+            logger.error(f"❌ 업데이트 요약 생성 실패: {e}")
+            raise e

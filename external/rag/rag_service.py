@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, List
 from domain.channel.model.channel import Channel
 from domain.idea.dto.idea_dto import IdeaRequest
+from domain.log.model.report_log import ReportLog
+from domain.report.model.report import Report
 
 
 class RagService(ABC):
@@ -50,4 +52,9 @@ class RagService(ABC):
     @abstractmethod
     def analyze_channel_trends(self, channel_concept: str, target_audience: str) -> Dict:
         """채널 맞춤형 트렌드 분석"""
+        pass
+
+    @abstractmethod
+    def create_update_summary(self, prev_report: ReportLog, curr_report: Report):
+        """업데이트 변경사항 요약"""
         pass

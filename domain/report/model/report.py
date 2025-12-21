@@ -48,6 +48,9 @@ class Report(SQLModel, table=True):
     # 분석 결과
     leave_analyze: str = Field(sa_column=Column(Text), description="시청자 이탈 분석")
     optimization: str = Field(sa_column=Column(Text), description="알고리즘 최적화")
+
+    # 업데이트 요약본
+    update_summary: Optional[str] = Field(default=None, sa_column=Column(Text), description="업데이트 요약본")
     
     # BaseEntity 상속 부분 (created_at, updated_at)
     created_at: Optional[datetime] = Field(default_factory=get_kst_now_naive)

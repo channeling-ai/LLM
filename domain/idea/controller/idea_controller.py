@@ -2,6 +2,7 @@ import logging
 
 from fastapi import APIRouter
 
+from core.enums.video_category import VideoCategory
 from domain.idea.dto.idea_dto import IdeaRequest, PopularRequest
 from domain.idea.service.idea_service import IdeaService
 from external.rag.rag_service_impl import RagServiceImpl
@@ -33,9 +34,13 @@ async def create_idea(req: IdeaRequest):
 @router.post("/popular")
 async def get_popular_ideas(req: PopularRequest):
     try:
-        popular_ideas = await rag_service.get_popular_videos(req.category)
+        if not req.category:
+            for v in VideoCategory:
+                await rag_service.get_popular_videos(v)
+        else:
+            await rag_service.get_popular_videos(req.category)
     except Exception as e:
         logger.error(f"인기 영상 호출 프로세스 실패: {e!r}")
         raise
 
-    return ApiResponse.on_success(SuccessStatus._OK, "인기 영상 호출 성공")
+    return ApiResponse.on_success(SuccessStatus._OK, f"{req.category} 인기 영상 10개 호출 성공")
