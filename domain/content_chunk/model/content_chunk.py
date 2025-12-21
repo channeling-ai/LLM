@@ -11,7 +11,6 @@ class ContentChunk(SQLModel, table=True):
     __tablename__ = "content_chunk"
     
     id: Optional[int] = Field(default=None, primary_key=True)
-    source_type: SourceTypeEnum = Field(sa_column=Column(Enum(SourceTypeEnum, name="source_type_enum"), nullable=False))
     source_type: SourceTypeEnum  = Field(
         sa_column=Column(
             SAEnum(SourceTypeEnum, name="sourcetypeenum", native_enum=False),

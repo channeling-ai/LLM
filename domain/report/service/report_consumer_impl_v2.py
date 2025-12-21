@@ -5,7 +5,6 @@ import logging
 import time
 from typing import Any, Dict, Optional, Tuple
 
-from core.enums.source_type import SourceTypeEnum
 from domain.channel.repository.channel_repository import ChannelRepository
 from domain.comment.service.comment_service import CommentService
 from domain.content_chunk.repository.content_chunk_repository import ContentChunkRepository
@@ -85,6 +84,12 @@ class ReportConsumerImplV2(ReportConsumer):
             
         return report, video
 
+    async def create_summary_update(self, report_id):
+        task = await self.task_repository.find_by_report(report_id)
+        if task.overview_status == Status.COMPLETED and task.analysis_status == Status.COMPLETED:
+            logger.info(f"모든 작업 완료. 요약 생성 시작 (Report {report_id})")
+            await self.report_service.summarize_update_changes(report_id)
+
 
     async def handle_overview_v2(self, message: Dict[str, Any]):
         logger.info(f"[V2] Handling overview request")
@@ -141,8 +146,11 @@ class ReportConsumerImplV2(ReportConsumer):
 
                 await self.redis_service.publish(
                         user_id=str(user_id),
-                        message=json.dumps({"status": "success", "step": "overview"})
+                        message=json.dumps({"status": "success", "step": "overview", "report": report.id})
                     )
+
+            await self.create_summary_update(report.id)
+
         except Exception as e:
             logger.error(f"handle_overview 처리 중 오류 발생: {e}")
             # task 정보 업데이트
@@ -168,6 +176,7 @@ class ReportConsumerImplV2(ReportConsumer):
         """보고서 분석 요청 처리"""
         logger.info(f"[V2] Handling analysis request")
         start_time = time.time()  # 시작 시간 기록
+        user_id = None
         
         try:
             # 공통 메서드로 report와 video 정보 조회
@@ -210,8 +219,10 @@ class ReportConsumerImplV2(ReportConsumer):
 
                 await self.redis_service.publish(
                         user_id=str(user_id),
-                        message=json.dumps({"status": "success", "step": "analysis"})
+                        message=json.dumps({"status": "success", "step": "analysis", "report": report.id})
                     )
+
+            await self.create_summary_update(report.id)
 
         except Exception as e:
             logger.error(f"handle_analysis 처리 중 오류 발생: {e}")
@@ -222,11 +233,13 @@ class ReportConsumerImplV2(ReportConsumer):
                     "id": task.id,
                     "analysis_status": Status.FAILED
                 })
-                await self.redis_service.publish(
-                        user_id=str(user_id),
-                        message=json.dumps({"status": "fail", "step": "analysis"})
-                    )
-                logger.info(f"Task ID {task.id}의 analysis_status를 FAILED로 업데이트했습니다.")
+
+                if user_id:
+                    await self.redis_service.publish(
+                            user_id=str(user_id),
+                            message=json.dumps({"status": "fail", "step": "analysis"})
+                        )
+                    logger.info(f"Task ID {task.id}의 analysis_status를 FAILED로 업데이트했습니다.")
         finally:
             end_time = time.time()  # 종료 시간 기록
             elapsed_time = end_time - start_time

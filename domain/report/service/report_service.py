@@ -1,19 +1,20 @@
-from typing import DefaultDict, List, Any
-import logging
-import json
 import asyncio
+import json
+import logging
 import time
-from domain.comment.model.comment import Comment
-from domain.report.repository.report_repository import ReportRepository
-from domain.content_chunk.repository.content_chunk_repository import ContentChunkRepository
-from domain.trend_keyword.repository.trend_keyword_repository import TrendKeywordRepository
-from domain.trend_keyword.model.trend_keyword_type import TrendKeywordType
-from domain.channel.repository.channel_repository import ChannelRepository
-from domain.video.model.video import Video
-from domain.channel.model.channel import Channel
+from typing import DefaultDict, List
+
 from core.enums.source_type import SourceTypeEnum
-from external.rag.rag_service_impl import RagServiceImpl
+from domain.channel.repository.channel_repository import ChannelRepository
+from domain.comment.model.comment import Comment
+from domain.content_chunk.repository.content_chunk_repository import ContentChunkRepository
+from domain.log.repository.report_log_repository import ReportLogRepository
+from domain.report.repository.report_repository import ReportRepository
+from domain.trend_keyword.model.trend_keyword_type import TrendKeywordType
+from domain.trend_keyword.repository.trend_keyword_repository import TrendKeywordRepository
+from domain.video.model.video import Video
 from external.rag import leave_analyize
+from external.rag.rag_service_impl import RagServiceImpl
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +25,7 @@ class ReportService:
         self.trend_keyword_repository = TrendKeywordRepository()
         self.channel_repository = ChannelRepository()
         self.rag_service = RagServiceImpl()
+        self.report_log_repository = ReportLogRepository()
 
     async def create_summary(self, video: Video, report_id: int, skip_vector_save: bool = False) -> bool:
         """
@@ -140,7 +142,7 @@ class ReportService:
             if not skip_vector_save:
                 await self.content_chunk_repository.save_context(
                     source_type=SourceTypeEnum.VIEWER_ESCAPE_ANALYSIS,
-                    source_id=report_id,
+                    source_id=int(report_id),
                     context=leave_result
                 )
             else:
@@ -302,3 +304,36 @@ class ReportService:
         count_dict = {comment_type: len(comments) for comment_type, comments in comment_dict.items()}
         logger.info("댓글 개수를 PostgreSQL DB에 저장합니다.")
         return await self.report_repository.update_count(report_id, count_dict)
+
+    async def summarize_update_changes(self, report_id: int) -> bool:
+        """
+        리포트 업데이트 시 변경점 요약 생성
+        """
+        logger.info(f"🔄 업데이트 요약 생성 시작 - Report ID: {report_id}")
+
+        try:
+            # 1. 현재 리포트 조회
+            current_report = await self.report_repository.find_by_id(report_id)
+            if not current_report:
+                logger.error(f"Report {report_id} not found.")
+                return False
+
+            # 2. 이전 리포트 로그 조회 (가장 최근 것)
+            prev_log = await self.report_log_repository.find_by_video_for_update(current_report.video_id)
+
+            if not prev_log:
+                logger.info("이전 리포트 로그가 없어 업데이트 요약을 생략합니다.")
+                return True
+
+            # 3. 변경점 요약 생성 요청 (Service -> RAG Service)
+            update_summary_text = await self.rag_service.create_update_summary(prev_log, current_report)
+
+            # 4. 결과 저장
+            current_report.update_summary = update_summary_text
+            await self.report_repository.save({"id": current_report.id, "update_summary": update_summary_text})
+
+            return True
+
+        except Exception as e:
+            logger.error(f"❌ 업데이트 요약 생성 실패: {e}")
+            return False
