@@ -32,18 +32,16 @@ class CommentService:
 
             # 해당 감정 그룹의 content만 개행으로 합치기
             contents_str = "\n".join(comment.content for comment in comments)
-
             # LLM 서비스 호출 -> returns list[str]
             summarized_contents = self.rag_service.summarize_comments(contents_str)
             
-
 
             
             # 요약 내용을 defaultdict에 추가 & DB 저장
             comments_to_save = []
             for content in summarized_contents:
                 summarized_comment_obj = Comment(
-                    comment_type=emotion,
+                    comment_type=emotion.value,
                     content=content,
                     report_id=comments[0].report_id
                 )
