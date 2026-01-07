@@ -50,7 +50,7 @@ class CommentService:
                 summarized_comments[emotion].append(summarized_comment_obj)
                 # 딕셔너리로 변환하여 저장
                 comments_to_save.append({
-                    "comment_type": emotion,
+                    "comment_type": emotion.value,
                     "content": content,
                     "report_id": comments[0].report_id
                 })
