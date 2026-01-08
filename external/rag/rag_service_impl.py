@@ -160,7 +160,7 @@ class RagServiceImpl(RagService):
             query_text = f"컨셉: {channel.concept}, 카테고리: {channel.channel_hash_tag}, 최근 영상 요약: {summary}"
 
             video_embedding = await self.content_chunk_repository.generate_embedding(query_text)
-            meta_data = {"query_embedding": str(video_embedding), "source_id": int(channel.channel_hash_tag.value)}
+            meta_data = {"query_embedding": str(video_embedding), "source_id": str(channel.channel_hash_tag.value)}
             similar_chunks = await self.content_chunk_repository.search_similar_by_embedding(
                 SourceTypeEnum.IDEA_RECOMMENDATION, metadata=meta_data, limit=5
             )
