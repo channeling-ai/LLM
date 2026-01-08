@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS content_chunk (
     id SERIAL PRIMARY KEY,
     source_type source_type_enum NOT NULL,
     -- video_id, channel_id, report_id 등
-    source_id VARCHAR(255) NOT NULL,
+    source_id INT NOT NULL,
     -- 텍스트 데이터(청크)
     content TEXT NOT NULL,
     -- 원본에서의 청크 순서 
