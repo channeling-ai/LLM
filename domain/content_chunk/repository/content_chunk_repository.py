@@ -10,7 +10,7 @@ class ContentChunkRepository(VectorRepository[ContentChunk]):
         """ContentChunk 모델 클래스를 반환합니다."""
         return ContentChunk
 
-    async def exists_by_chunk_type_and_id(self, chunk_type: str, source_id: str) -> bool:
+    async def exists_by_chunk_type_and_id(self, chunk_type: str, source_id: int) -> bool:
         async with PGSessionLocal() as session:
             query = text("""
                 SELECT 1 FROM content_chunk

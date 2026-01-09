@@ -158,7 +158,7 @@ class VectorRepository(Generic[T], ABC):
             return chunks
 
     
-    async def search_similar_K(self,query :str, source_type: str, source_id : str,metadata: Dict[str, Any] = None, limit: int = 10) -> List[Dict[str, Any]]:
+    async def search_similar_K(self,query :str, source_type: str, source_id : int, metadata: Dict[str, Any] = None, limit: int = 10) -> List[Dict[str, Any]]:
         query_embedding = await self.generate_embedding(query)  # OpenAI or other model로 임베딩
         query_embedding = str(query_embedding)
         async with PGSessionLocal() as session:

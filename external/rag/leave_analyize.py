@@ -90,7 +90,7 @@ async def analyze_leave(video: Video, token: str) -> str:
         # 6. 시간 단위 청킹 및 임베딩 저장
         chunking_start = time.time()
         logger.info("🔧 시간 단위 청킹 데이터 확인 중...")
-        exists = await content_repository.exists_by_chunk_type_and_id("time", str(video_id))
+        exists = await content_repository.exists_by_chunk_type_and_id("time", video_id)
         if exists:
             logger.info("기존에 저장한 적 있는 영상입니다. 대본 기반의 청킹 생성을 건너뜁니다.")
         else:
@@ -120,11 +120,11 @@ async def analyze_leave(video: Video, token: str) -> str:
         meta = {}
         # 2) 질문별 임베딩 및 유사 청킹 검색
         # 이탈 원인 질문의 상위 3개 청킹 데이터 조회 
-        cause_chunk = await content_repository.search_similar_K(questions["cause"],SourceTypeEnum.VIEWER_ESCAPE_ANALYSIS.value.upper(),str(video_id),meta ,3)
+        cause_chunk = await content_repository.search_similar_K(questions["cause"],SourceTypeEnum.VIEWER_ESCAPE_ANALYSIS.value.upper(), video_id, meta ,3)
         # 이탈 원인 질문의 상위 3개 청킹 데이터 조회 
-        improvement_chunk = await content_repository.search_similar_K(questions["improvement"],SourceTypeEnum.VIEWER_ESCAPE_ANALYSIS.value.upper(),str(video_id),meta ,3)
+        improvement_chunk = await content_repository.search_similar_K(questions["improvement"],SourceTypeEnum.VIEWER_ESCAPE_ANALYSIS.value.upper(), video_id ,meta ,3)
         # 이탈 원인 질문의 상위 3개 청킹 데이터 조회 
-        editing_flow_chunk = await content_repository.search_similar_K(questions["editing_flow"],SourceTypeEnum.VIEWER_ESCAPE_ANALYSIS.value.upper(),str(video_id),meta ,3)
+        editing_flow_chunk = await content_repository.search_similar_K(questions["editing_flow"],SourceTypeEnum.VIEWER_ESCAPE_ANALYSIS.value.upper(), video_id, meta ,3)
         
         similarity_time = time.time() - similarity_start
         logger.info(f"🔍 유사도 검색 완료 ({similarity_time:.2f}초)")
