@@ -1,10 +1,11 @@
 import asyncio
 import logging
+from core.config.logging_config import setup_logging
 from core.kafka.kafka_broker import kafka_broker
 from domain.report.service.report_consumer_impl_v2 import ReportConsumerImplV2 as ReportConsumerV2
 
 
-logging.basicConfig(level=logging.INFO)
+setup_logging()
 logger = logging.getLogger(__name__)
 
 
