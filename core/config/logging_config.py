@@ -1,24 +1,23 @@
+import json
 import logging
 import sys
 import os
 from datetime import datetime, timezone, timedelta
-from pythonjsonlogger import jsonlogger
 
 KST = timezone(timedelta(hours=9))
 
 
-class CustomJsonFormatter(jsonlogger.JsonFormatter):
+class CustomJsonFormatter(logging.Formatter):
     """로그 JSON 포매터"""
     def format(self, record):
-        import json
         log_dict = {
-            '@timestamp': datetime.now(KST).isoformat(),
+            '@timestamp': datetime.fromtimestamp(record.created, KST).isoformat(timespec='microseconds'),
             'message': record.getMessage(),
             'logger_name': record.name,
             'thread_name': record.threadName,
             'level': record.levelname
         }
-        return json.dumps(log_dict, ensure_ascii=False)
+        return json.dumps(log_dict, ensure_ascii=False, separators=(',', ':'))
 
 
 class ColorFormatter(logging.Formatter):
@@ -45,9 +44,7 @@ def setup_logging():
     handler = logging.StreamHandler(sys.stdout)
 
     if os.getenv("ENV") == "prod":
-        formatter = CustomJsonFormatter(
-            fmt='%(message)s'
-        )
+        formatter = CustomJsonFormatter()
     else:
         formatter = ColorFormatter(
             fmt='%(asctime)s [%(name)s] %(levelname)s - %(message)s',
