@@ -11,10 +11,12 @@ from domain.trend_keyword.controller.trend_keyword_controller import router as t
 
 from response.api_response import ApiResponse
 from response.code.status.success_status import SuccessStatus
-
+from external.log.discord_config import setup_logging
 '''
 서버 시작 명령어: fastapi dev main.py
 '''
+
+setup_logging()
 
 app = FastAPI(title="Channeling LLM API", version="1.0.0")
 
