@@ -9,7 +9,6 @@ from external.log.discord_handler import (
 
 def setup_logging():
     root_logger = logging.getLogger()
-    root_logger.setLevel(logging.INFO)
 
     webhook_url = os.getenv("DISCORD_WEBHOOK_URL")
     if not webhook_url:

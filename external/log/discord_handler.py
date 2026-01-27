@@ -22,8 +22,8 @@ class DiscordWebhookHandler(logging.Handler):
                 timeout=3
             )
         except Exception:
-            # 로깅 실패로 서버 죽으면 안 됨
-            pass
+            # 로깅 실패로 서버 죽으면 안 됨, 하지만 문제 인지를 위해 stderr에 출력
+            traceback.print_exc()
 
 
 class DiscordFormatter(logging.Formatter):
