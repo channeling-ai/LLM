@@ -52,5 +52,3 @@ redis
 # Timezone data (Windows)
 tzdata
 
-# JSON logging for Loki
-python-json-logger==2.0.7
