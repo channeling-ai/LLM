@@ -20,21 +20,28 @@ router = APIRouter(prefix="/trend-keywords", tags=["trend-keywords"])
 async def create_real_time_keyword():
 
     await trend_keyword_service.delete_past_realtime_keyword_if_exist()
-    
-    
+
+
     realtime_keyword = rag_service.analyze_realtime_trends()
+    logger.info(f"실시간 트렌드 LLM 응답: {realtime_keyword}")
+
     # 실시간 트렌드 키워드 저장
     if realtime_keyword and "trends" in realtime_keyword:
         realtime_keywords_to_save = []
         for keyword_data in realtime_keyword["trends"]:
+            # int 가 아닌 float 이 반환되는 경우 처리
+            try:
+                score = int(keyword_data.get("score", 0))
+            except (ValueError, TypeError):
+                score = 0
             trend_keyword = {
                 "channel_id":  None,
                 "keyword_type": TrendKeywordType.REAL_TIME,
                 "keyword": keyword_data.get("keyword", ""),
-                "score": keyword_data.get("score", 0)
+                "score": score
             }
             realtime_keywords_to_save.append(trend_keyword)
-        
+
         await trend_keyword_repository.save_bulk(realtime_keywords_to_save)
         logger.info("실시간 트렌드 키워드를 PG DB에 저장했습니다.")
     return {"message": "ok"}
@@ -62,6 +69,7 @@ async def create_channel_keyword(channel_id: int):
         target_audience=target_audience,
         latest_trend_keywords=latest_trend_keywords  # 키워드 인자로 전달
     )
+    logger.info(f"채널 맞춤형 트렌드 LLM 응답: {channel_keyword}")
 
     # 기존 채널 맞춤형 키워드 존재 시 삭제
     await trend_keyword_service.delete_past_chennel_keyword_if_exist(channel_id)
@@ -70,11 +78,16 @@ async def create_channel_keyword(channel_id: int):
     if channel_keyword and "customized_trends" in channel_keyword:
         channel_keywords_to_save = []
         for keyword_data in channel_keyword["customized_trends"]:
+            # int 가 아닌 float 이 반환되는 경우 처리
+            try:
+                score = int(keyword_data.get("score", 0))
+            except (ValueError, TypeError):
+                score = 0
             trend_keyword = {
                 "channel_id": channel_id,
                 "keyword_type": TrendKeywordType.CHANNEL,
                 "keyword": keyword_data.get("keyword", ""),
-                "score": keyword_data.get("score", 0)
+                "score": score
             }
             channel_keywords_to_save.append(trend_keyword)
         

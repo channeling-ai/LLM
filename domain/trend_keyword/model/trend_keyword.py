@@ -15,7 +15,9 @@ class TrendKeyword(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     
     # Foreign Key - Channel 테이블 참조
-    channel_id: int = Field(
+    # null 허용이므로, optional
+    channel_id: Optional[int] = Field(
+        default=None,
         description="연관된 채널 ID (null 허용)"
     )
     
