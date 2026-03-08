@@ -11,3 +11,8 @@ __pycache__
 .vscode
 .python-version
 .env
+
+# log
+logs
+
+.claude

@@ -7,6 +7,16 @@ class CommentType(str, Enum):
     NEUTRAL = 'NEUTRAL'
     POSITIVE = 'POSITIVE'
 
+    @property
+    def label(self) -> str:
+        labels = {
+            CommentType.POSITIVE: "긍정",
+            CommentType.NEGATIVE: "부정",
+            CommentType.NEUTRAL: "중립",
+            CommentType.ADVICE_OPINION: "조언 및 의견",
+        }
+        return labels[self]
+
     @staticmethod
     def from_emotion_code(code: int) -> "CommentType":
         mapping = {

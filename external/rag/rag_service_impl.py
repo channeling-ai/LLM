@@ -86,14 +86,14 @@ class RagServiceImpl(RagService):
                 "comment_type": CommentType.NEUTRAL
             }
 
-    def summarize_comments(self, comments: str) -> List[str]:
+    def summarize_comments(self, comments: str, emotion: str, comment_count: int) -> List[str]:
         query = (
             "유튜브 댓글을 분석하여 요약하고 "
             "백틱(```)이나 설명 없이 순수 JSON으로 출력해주세요."
         )
 
         result = self.execute_llm_chain(
-            comments, query, PromptTemplateManager.get_sumarlize_comment_prompt()
+            comments, query, PromptTemplateManager.get_sumarlize_comment_prompt(emotion, comment_count)
         )
         print("LLM 응답 = ", result)
 

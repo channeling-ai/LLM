@@ -33,7 +33,7 @@ class CommentService:
             # 해당 감정 그룹의 content만 개행으로 합치기
             contents_str = "\n".join(comment.content for comment in comments)
             # LLM 서비스 호출 -> returns list[str]
-            summarized_contents = self.rag_service.summarize_comments(contents_str)
+            summarized_contents = self.rag_service.summarize_comments(contents_str, emotion.label, len(comments))
             
 
             
