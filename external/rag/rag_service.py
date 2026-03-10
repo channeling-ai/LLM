@@ -20,8 +20,8 @@ class RagService(ABC):
         pass
     
     @abstractmethod
-    def summarize_comments(self, comments: str) -> List[str]:
-        """댓글 요약"""
+    def summarize_comments(self, comments: str, emotion: str, comment_count: int) -> List[str]:
+        """댓글 감정별 요약"""
         pass
     
     @abstractmethod
