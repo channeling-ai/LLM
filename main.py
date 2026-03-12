@@ -1,6 +1,7 @@
 import logging
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 
 from core.config.logging_config import setup_logging
 from core.config.database_config import test_pg_connection
@@ -60,6 +61,16 @@ async def on_shutdown():
     # kafka 브로커 종료
     await kafka_broker.close()
     logger.info("Kafka 브로커 종료 완료")
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(
+        f"{type(exc).__name__}: {exc}",
+        exc_info=(type(exc), exc, exc.__traceback__),
+        extra={"endpoint": f"{request.method} {request.url.path}"},
+    )
+    return JSONResponse(status_code=500, content={"detail": "Internal Server Error"})
+
 
 @app.get("/health")
 async def health_check():

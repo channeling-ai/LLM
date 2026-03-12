@@ -23,7 +23,8 @@ async def create_real_time_keyword():
 
 
     realtime_keyword = rag_service.analyze_realtime_trends()
-    logger.info(f"실시간 트렌드 LLM 응답: {realtime_keyword}")
+    if "error" not in realtime_keyword:
+        logger.info(f"실시간 트렌드 LLM 응답: {realtime_keyword}")
 
     # 실시간 트렌드 키워드 저장
     if realtime_keyword and "trends" in realtime_keyword:
