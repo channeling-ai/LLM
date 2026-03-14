@@ -1,6 +1,7 @@
 from enum import Enum
 
 class VideoCategory(str, Enum):
+    NONE = "0"
     FILM_AND_ANIMATION = "1"
     AUTOS_AND_VEHICLES = "2"
     MUSIC = "10"
