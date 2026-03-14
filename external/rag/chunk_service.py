@@ -196,7 +196,7 @@ async def create_meaning_chunks_with_focus(
             row_list.append([avg_audienceWatchRatio, avg_relativeRetentionPerformance])
             
         else:
-            pass
+            chunk_size = base_chunk_size_sec
 
         current_time += chunk_size
     context = json.dumps(chunk_list, ensure_ascii=False)

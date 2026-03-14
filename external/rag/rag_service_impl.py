@@ -297,6 +297,7 @@ class RagServiceImpl(RagService):
         logger.info(f"📈 Google Trends 실시간 트렌드 API 호출 완료 ({trends_time:.2f}초) - {len(raw_trends) if raw_trends else 0}개 트렌드")
         
         if not raw_trends:
+            logger.error("Google Trends 데이터 조회 실패 - 빈 결과 반환")
             return {"error": "트렌드 데이터를 가져올 수 없습니다."}
         
         current_date = datetime.now().strftime("%Y년 %m월 %d일")
@@ -328,9 +329,10 @@ class RagServiceImpl(RagService):
             result = json.loads(clean_json_str)
             return result
         except json.JSONDecodeError:
+            logger.error(f"실시간 트렌드 LLM 응답 JSON 파싱 실패 - 원본 응답: {result_str}")
             return {"error": "결과 파싱 오류", "raw_result": result_str}
-    
-    
+
+
 
     def analyze_channel_trends(
         self,
@@ -408,6 +410,7 @@ class RagServiceImpl(RagService):
             result = json.loads(clean_json_str)
             return result
         except json.JSONDecodeError:
+            logger.error(f"채널 맞춤형 트렌드 LLM 응답 JSON 파싱 실패 - 원본 응답: {result_str}")
             return {"error": "결과 파싱 오류", "raw_result": result_str}
 
 

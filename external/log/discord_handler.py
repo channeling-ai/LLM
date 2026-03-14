@@ -1,6 +1,17 @@
 import logging
 import requests
 import traceback
+from datetime import datetime
+
+
+_FIELD_LIMIT = 1000   # Discord embed field value 최대 1024자에서 여유 두기
+_TRACEBACK_LIMIT = 3000  # Discord embed description 최대 4096자에서 여유 두기
+
+
+def _truncate(text: str, limit: int) -> str:
+    if len(text) <= limit:
+        return text
+    return text[:limit] + "\n...(생략됨)"
 
 
 class DiscordWebhookHandler(logging.Handler):
@@ -10,29 +21,46 @@ class DiscordWebhookHandler(logging.Handler):
 
     def emit(self, record: logging.LogRecord):
         try:
-            message = self.format(record)
+            tb_text = ""
+            if record.exc_info:
+                tb_text = "".join(traceback.format_exception(*record.exc_info))
+
+            # 엔드포인트 정보 (exception handler에서 extra로 전달)
+            endpoint = getattr(record, "endpoint", None)
+            fields = [
+                {"name": "Logger", "value": f"`{record.name}:{record.lineno}`", "inline": True},
+                {"name": "Level",  "value": f"`{record.levelname}`",            "inline": True},
+            ]
+            if endpoint:
+                fields.append({"name": "Endpoint", "value": f"`{endpoint}`", "inline": False})
+
+            fields.append({
+                "name": "Message",
+                "value": _truncate(record.getMessage(), _FIELD_LIMIT),
+                "inline": False,
+            })
+
+            if tb_text:
+                fields.append({
+                    "name": "Traceback",
+                    "value": f"```python\n{_truncate(tb_text, _TRACEBACK_LIMIT)}\n```",
+                    "inline": False,
+                })
 
             payload = {
-                "content": f"🚨 **FastAPI ERROR** 🚨\n```{message}```"
+                "embeds": [{
+                    "title": "🚨 FastAPI ERROR",
+                    "color": 0xE74C3C,
+                    "fields": fields,
+                    "timestamp": datetime.utcnow().isoformat(),
+                }]
             }
 
-            requests.post(
-                self.webhook_url,
-                json=payload,
-                timeout=3
-            )
+            requests.post(self.webhook_url, json=payload, timeout=3)
         except Exception:
-            # 로깅 실패로 서버 죽으면 안 됨, 하지만 문제 인지를 위해 stderr에 출력
             traceback.print_exc()
 
 
 class DiscordFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
-        base_message = super().format(record)
-
-        if record.exc_info:
-            base_message += "\n" + "".join(
-                traceback.format_exception(*record.exc_info)
-            )
-
-        return base_message
+        return super().format(record)
