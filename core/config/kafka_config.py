@@ -11,13 +11,14 @@ class KafkaConfig(BaseSettings):
     # 보안 프로토콜 설정
     security_protocol: str = "PLAINTEXT"
 
-    # Producer 설정
+    # Producer 설정 (TODO: 역방향 메시지 발행 시 재설정 필요)
+    # 재시도: 앱 레벨(base_producer.py)만 사용, Kafka 레벨 retries는 사용 안 함
     # 메시지 전송 확인 레벨 (0=안함, 1=리더만, all=모든 복제본)
-    producer_acks: str = "all"  
-    # 전송 실패시 재시도 횟수
+    producer_acks: str = "all"
+    # 앱 레벨 재시도 횟수 (base_producer.py 지수 백오프 참조)
     producer_retries: int = 3
     # 메시지 압축 방식 (none, gzip, snappy, lz4, zstd)
-    producer_compression_type: str = "gzip"
+    producer_compression_type: str = "snappy"
 
     # Consumer 설정
     consumer_group_id: str = "llm-service-group"
