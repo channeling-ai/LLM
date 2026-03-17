@@ -23,7 +23,7 @@ class KafkaConfig(BaseSettings):
     # Consumer 설정
     consumer_group_id: str = "llm-service-group"
     # 오프셋이 없을 때 읽기 시작 위치 (earliest=처음부터, latest=최신부터)
-    consumer_auto_offset_reset: str = "latest"  
+    consumer_auto_offset_reset: str = "earliest"
     # 오프셋 자동 커밋 여부 (True시 자동으로 읽은 위치 저장)
     consumer_enable_auto_commit: bool = True
     # 자동 커밋 간격 (밀리초, 5초마다 오프셋 커밋)

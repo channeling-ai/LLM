@@ -100,7 +100,8 @@ class ReportConsumerImplV2(ReportConsumer):
             # 공통 메서드로 report와 video 정보 조회
             result = await self._get_report_and_video(message)
             if not result:
-                return
+                logger.error(f"메시지 정보를 가져오지 못했습니다. 메시지: {message}")
+                raise
 
             report, video = result
             report_id = report.id  
@@ -182,7 +183,8 @@ class ReportConsumerImplV2(ReportConsumer):
             # 공통 메서드로 report와 video 정보 조회
             result = await self._get_report_and_video(message)
             if not result:
-                return
+                logger.error(f"메시지 정보를 가져오지 못했습니다. 메시지: {message}")
+                raise
             
             report, video = result
             
