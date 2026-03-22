@@ -1,15 +1,16 @@
 # Web Framework
 fastapi==0.115.14
 uvicorn
+python-multipart
 
 # Database
 sqlmodel
 asyncpg
 pgvector
 cryptography
-pydantic-settings
 
 # Configuration
+pydantic-settings
 python-dotenv
 
 # Redis Cache
@@ -18,37 +19,24 @@ redis[asyncio]>=5.0.0
 # HTTP Client
 httpx
 
-# File Upload Support
-python-multipart
-
 # AI
 openai
 langchain-core
 langchain-openai
 langchain==0.3.27
 
-#FastStream
+# Kafka
 faststream[kafka]
+python-snappy==0.7.3
 
-
-#greennet
-greenlet
-
-
-#youtube
-youtube-transcript-api
-# Google API Client
+# Google API
 google-api-python-client
+youtube-transcript-api
 
-#trend
+# Trend
 serpapi
 
-# isodate
+# Utilities
+greenlet
 isodate
-
-#redis
-redis
-
-# Timezone data (Windows)
 tzdata
-
