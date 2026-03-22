@@ -10,4 +10,6 @@ from core.config.kafka_config import kafka_config
 #     Kafka 레벨 retries는 0으로 두어 중복 시도 방지
 kafka_broker = KafkaBroker(
     bootstrap_servers=kafka_config.bootstrap_servers,
+    acks=kafka_config.producer_acks,
+    compression_type=kafka_config.producer_compression_type
 )

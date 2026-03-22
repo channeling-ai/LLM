@@ -5,6 +5,9 @@ import logging
 import time
 from typing import Any, Dict, Optional, Tuple
 
+from core.kafka.kafka_broker import kafka_broker
+from core.kafka.dto.producer_message import Message, Step, OverviewResult, AnalysisResult
+from core.config.kafka_config import kafka_config
 from domain.channel.repository.channel_repository import ChannelRepository
 from domain.comment.service.comment_service import CommentService
 from domain.content_chunk.repository.content_chunk_repository import ContentChunkRepository
@@ -149,6 +152,20 @@ class ReportConsumerImplV2(ReportConsumer):
                         user_id=str(user_id),
                         message=json.dumps({"status": "success", "step": "overview", "report": report.id})
                     )
+                
+                await kafka_broker.publish(
+                    Message(
+                        is_success=False,
+                        task_id=task.id,
+                        report_id=report.id,
+                        step=Step.overview,
+                        result=OverviewResult(
+                            summary="summary_test",
+                            comment_analysis="comment_test",
+                        )
+                    ),
+                    topic=kafka_config.report_result_v3
+                )
 
             await self.create_summary_update(report.id)
 
@@ -223,6 +240,20 @@ class ReportConsumerImplV2(ReportConsumer):
                         user_id=str(user_id),
                         message=json.dumps({"status": "success", "step": "analysis", "report": report.id})
                     )
+                # Kafka 발행
+                await kafka_broker.publish(
+                    Message(
+                        is_success=False,
+                        task_id=task.id,
+                        report_id=report.id,
+                        step=Step.analysis,
+                        result=AnalysisResult(
+                            viewer_retention="viewer_test",
+                            optimization="optimization_test",
+                        )
+                    ),
+                    topic=kafka_config.report_result_v3
+                )
 
             await self.create_summary_update(report.id)
 

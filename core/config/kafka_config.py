@@ -39,6 +39,7 @@ class KafkaConfig(BaseSettings):
     overview_topic_v2: str = "overview-topic-v2"
     analysis_topic_v2: str = "analysis-topic-v2"
     idea_topic_v2: str = "idea-topic-v2"
+    report_result_v3: str = "report_result_v3"
 
     class Config:
         # 환경 변수에서 설정값을 읽어옴
