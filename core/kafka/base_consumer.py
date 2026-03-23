@@ -41,6 +41,7 @@ class BaseConsumer(ABC):
             auto_offset_reset=self.config.consumer_auto_offset_reset,
             auto_commit=self.config.consumer_enable_auto_commit,
             auto_commit_interval_ms=self.config.consumer_auto_commit_interval_ms,
+            isolation_level="read_committed",
         )
         async def message_processor(message: Dict[str, Any]):
             try:
